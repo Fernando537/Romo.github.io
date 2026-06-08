@@ -13,480 +13,761 @@ function playAlarmaSonido() {
     } catch(e) { console.log("Audio play bloqueado o deshabilitado"); }
 }
 
-// ================= CONFIGURACIÓN Y CONEXIÓN A SUPABASE =================
-const SUPABASE_URL = "https://TU_PROYECTO.supabase.co"; // REEMPLAZA CON TU URL
-const SUPABASE_ANON_KEY = "TU_ANON_KEY_DE_SUPABASE";   // REEMPLAZA CON TU KEY
-
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+// ================= ESTADOS CENTRALIZADOS (LOCALSTORAGE) =================
 let canchasFechaActual = new Date();
 let tiendaSubModuloActivo = 'pos';
+let prodImagenBase64Temporal = '';
 
-// Data Store (Sincronizados dinámicamente desde Supabase)
+// Data Store
 let canchasReservas = [];
-let billarHistorial = []; // Local por el momento
+let billarHistorial = [];
 let tiendaCategorias = [];
 let tiendaProductos = [];
 let tiendaCarrito = [];
 let flujoCaja = [];
 
-// Inicialización de Datos asíncrona
-async function inicializarBaseDatos() {
-    console.log("Conectando y descargando datos desde Supabase...");
-    
-    // Descargamos toda la información en paralelo desde la nube
-    await Promise.all([
-        cargarCanchasDesdeNube(),
-        cargarCategoriasDesdeNube(),
-        cargarProductosDesdeNube(),
-        cargarFlujoCajaDesdeNube()
-    ]);
+// Inicialización de Datos
+function inicializarBaseDatos() {
+    // Canchas
+    if (!localStorage.getItem('wally_romo_canchas')) {
+        const hoyISO = obtenerFechaISO(new Date());
+        canchasReservas = [
+            { 
+                id: "1", cancha: 2, inicioStr: "13:00", finStr: "14:30", fecha: hoyISO, telefono: '71234567',
+                cliente: 'Jesús Tarqui', juego: 'Wally', total: '60.00', acuenta: '60.00', saldo: '0.00',
+                historial: ['Turno registrado por Mauricio']
+            },
+            { 
+                id: "2", cancha: 3, inicioStr: "19:00", finStr: "20:30", fecha: hoyISO, telefono: '68214578',
+                cliente: 'Alex Sandro', juego: 'Futbito', total: '80.00', acuenta: '40.00', saldo: '40.00',
+                historial: ['Se registró un adelanto de 40 Bs.']
+            }
+        ];
+        localStorage.setItem('wally_romo_canchas', JSON.stringify(canchasReservas));
+    } else {
+        canchasReservas = JSON.parse(localStorage.getItem('wally_romo_canchas'));
+    }
 
-    // Renderizado inicial una vez obtenidos los datos reales
-    renderizarPlanillaCanchas();
-    renderCategoriasTienda();
-    renderProductosTienda();
-    renderProductosPOS();
-    renderCategoriasFiltrosPOS();
-    renderizarFlujoCaja();
+    // Billar
+    billarHistorial = JSON.parse(localStorage.getItem('wally_romo_billar_historial')) || [];
+
+    // Tienda Categorías
+    if (!localStorage.getItem('wally_romo_categorias')) {
+        tiendaCategorias = ["Bebidas", "Snacks", "Accesorios"];
+        localStorage.setItem('wally_romo_categorias', JSON.stringify(tiendaCategorias));
+    } else {
+        tiendaCategorias = JSON.parse(localStorage.getItem('wally_romo_categorias'));
+    }
+
+    // Tienda Productos
+    if (!localStorage.getItem('wally_romo_productos')) {
+        tiendaProductos = [
+            { id: 1, nombre: "Gatorade Frutos Rojos", categoria: "Bebidas", precio: 10.00, stock: 25, imagen: "" },
+            { id: 2, nombre: "Papa Fritas Lay's", categoria: "Snacks", precio: 7.00, stock: 15, imagen: "" },
+            { id: 3, nombre: "Agua Mineral 500ml", categoria: "Bebidas", precio: 5.00, stock: 30, imagen: "" }
+        ];
+        localStorage.setItem('wally_romo_productos', JSON.stringify(tiendaProductos));
+    } else {
+        tiendaProductos = JSON.parse(localStorage.getItem('wally_romo_productos'));
+    }
+
+    // Flujo de Caja
+    if (!localStorage.getItem('wally_romo_flujo')) {
+        flujoCaja = [
+            { id: 1, timestamp: new Date().toISOString(), fecha: obtenerFechaISO(new Date()), tipo: 'Ingreso', categoria: 'Caja Inicial', concepto: 'Apertura de Caja Mínima', monto: 100.00 }
+        ];
+        localStorage.setItem('wally_romo_flujo', JSON.stringify(flujoCaja));
+    } else {
+        flujoCaja = JSON.parse(localStorage.getItem('wally_romo_flujo'));
+    }
+}
+
+function guardarCanchas() {
+    localStorage.setItem('wally_romo_canchas', JSON.stringify(canchasReservas));
+    actualizarDashboardEstadisticas();
+}
+function guardarBillarHistorial() {
+    localStorage.setItem('wally_romo_billar_historial', JSON.stringify(billarHistorial));
+    actualizarDashboardEstadisticas();
+}
+function guardarTiendaCategorias() {
+    localStorage.setItem('wally_romo_categorias', JSON.stringify(tiendaCategorias));
+}
+function guardarTiendaProductos() {
+    localStorage.setItem('wally_romo_productos', JSON.stringify(tiendaProductos));
+    actualizarDashboardEstadisticas();
+}
+function guardarFlujoCaja() {
+    localStorage.setItem('wally_romo_flujo', JSON.stringify(flujoCaja));
     actualizarDashboardEstadisticas();
 }
 
-// ================= FUNCIONES DE CARGA (READ) DESDE SUPABASE =================
-
-async function cargarCanchasDesdeNube() {
-    let { data, error } = await supabase.from('canchas_reservas').select('*');
-    if (error) console.error("Error cargando canchas:", error);
-    else canchasReservas = data || [];
-}
-
-async function cargarCategoriasDesdeNube() {
-    let { data, error } = await supabase.from('tienda_categorias').select('*');
-    if (error) console.error("Error cargando categorías:", error);
-    else tiendaCategorias = (data || []).map(c => c.nombre);
-}
-
-async function cargarProductosDesdeNube() {
-    let { data, error } = await supabase.from('tienda_productos').select('*');
-    if (error) console.error("Error cargando productos:", error);
-    else tiendaProductos = data || [];
-}
-
-async function cargarFlujoCajaDesdeNube() {
-    let { data, error } = await supabase.from('flujo_caja').select('*').order('id', { ascending: true });
-    if (error) console.error("Error cargando flujo de caja:", error);
-    else flujoCaja = data || [];
-}
-
-// ================= NAVEGACIÓN GENERAL =================
-function cambiarModulo(moduloId) {
-    document.querySelectorAll('.structural-modulo').forEach(m => m.classList.add('hidden'));
-    const target = document.getElementById(`modulo-${moduloId}`);
-    if (target) target.classList.remove('hidden');
-
-    document.querySelectorAll('.sidebar-btn').forEach(b => {
-        b.classList.remove('bg-white/10', 'text-white', 'border-l-4', 'border-white');
-        b.classList.add('text-white/70');
-    });
-    const activeBtn = document.getElementById(`btn-nav-${moduloId}`);
-    if (activeBtn) {
-        activeBtn.classList.remove('text-white/70');
-        activeBtn.classList.add('bg-white/10', 'text-white', 'border-l-4', 'border-white');
-    }
-
-    const titles = {
-        'inicio': ['🏠', 'Inicio / Resumen Diario'],
-        'canchas': ['⚽', 'Planilla de Canchas (Wally)'],
-        'billar': ['🎱', 'Mesas de Billar / Snack'],
-        'tienda': ['🛒', 'Almacén, Tienda & POS'],
-        'flujo': ['💸', 'Flujo de Caja / Contabilidad']
+// ================= CONTROL GENERAL DE NAVEGACIÓN =================
+function cambiarModulo(idModulo) {
+    document.querySelectorAll('.structural-modulo').forEach(mod => mod.classList.add('hidden'));
+    document.getElementById(`modulo-${idModulo}`).classList.remove('hidden');
+    
+    // Iconos y Títulos del encabezado superior
+    const config = {
+        'inicio': { icono: '🏠', titulo: 'Inicio / Resumen Diario' },
+        'canchas': { icono: '🏐', titulo: 'Gestión de Canchas Wally' },
+        'billar': { icono: '🎱', titulo: 'Control de Mesas de Billar' },
+        'tienda': { icono: '🏪', titulo: 'Tienda & POS / Snack Bar' },
+        'flujo': { icono: '📊', titulo: 'Libro de Caja y Finanzas' }
     };
-    if (titles[moduloId]) {
-        document.getElementById('header-icono').innerText = titles[moduloId][0];
-        document.getElementById('titulo-modulo-activo').innerText = titles[moduloId][1];
+
+    document.getElementById('header-icono').innerText = config[idModulo].icono;
+    document.getElementById('titulo-modulo-activo').innerText = config[idModulo].titulo;
+
+    // Cambiar estados de botones de navegación lateral
+    document.querySelectorAll('aside nav button').forEach(btn => {
+        btn.className = "w-full flex items-center gap-3 text-slate-400 hover:text-slate-200 hover:bg-[#1a222c] px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left";
+    });
+    const activeBtn = document.getElementById(`btn-nav-${idModulo}`);
+    if (activeBtn) {
+        activeBtn.className = "w-full flex items-center gap-3 bg-[#1e2732] border-l-4 border-cyan-500 text-cyan-400 px-3 py-2.5 rounded-r-xl font-bold text-xs transition-all text-left";
+    }
+
+    // Ocultar barra lateral en móviles al clickear
+    if (window.innerWidth < 768) {
+        document.getElementById('sidebar').classList.add('hidden');
+    }
+
+    // Inicializar renderizados específicos
+    if (idModulo === 'inicio') actualizarDashboardEstadisticas();
+    else if (idModulo === 'canchas') renderizarAgendaCanchas();
+    else if (idModulo === 'billar') renderizarBillarMonitor();
+    else if (idModulo === 'tienda') { renderCategoriasTienda(); renderProductosTienda(); renderProductosPOS(); }
+    else if (idModulo === 'flujo') { 
+        document.getElementById('flujo-filtro-fecha').value = obtenerFechaISO(new Date());
+        renderizarFlujoCaja(); 
     }
 }
 
-// ================= UTILS / HELPERS =================
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('hidden');
+}
+
+// ================= AUXILIARES =================
 function obtenerFechaISO(dateObj) {
-    return dateObj.toISOString().split('T')[0];
+    let m = dateObj.getMonth() + 1;
+    let d = dateObj.getDate();
+    return `${dateObj.getFullYear()}-${m < 10 ? '0'+m : m}-${d < 10 ? '0'+d : d}`;
 }
-function formatMoney(num) {
-    return "Bs " + parseFloat(num).toFixed(2);
+function formatMoney(amount) {
+    return `Bs ${parseFloat(amount).toFixed(2)}`;
 }
 
-// ================= MODULO INICIO / DASHBOARD =================
+// ================= MODULO INICIO / STATS =================
 function actualizarDashboardEstadisticas() {
-    const hoyStr = obtenerFechaISO(new Date());
+    const hoyISO = obtenerFechaISO(new Date());
 
-    // Ingresos de hoy en flujo de caja
-    const ingresosHoy = flujoCaja
-        .filter(item => item.fecha === hoyStr && item.tipo === 'Ingreso')
-        .reduce((sum, item) => sum + item.monto, 0);
+    // 1. Caja Neta de Hoy (Ingresos - Egresos de hoy)
+    const transaccionesHoy = flujoCaja.filter(f => f.fecha === hoyISO);
+    let ingresosHoy = 0;
+    let egresosHoy = 0;
+    transaccionesHoy.forEach(t => {
+        if (t.tipo === 'Ingreso') ingresosHoy += parseFloat(t.monto);
+        else egresosHoy += parseFloat(t.monto);
+    });
+    const balanceHoy = ingresosHoy - egresosHoy;
+    document.getElementById('stat-caja').innerText = formatMoney(balanceHoy);
+    document.getElementById('stat-caja').className = balanceHoy >= 0 ? "text-xl font-black text-emerald-600" : "text-xl font-black text-red-650";
 
-    // Egresos de hoy en flujo de caja
-    const egresosHoy = flujoCaja
-        .filter(item => item.fecha === hoyStr && item.tipo === 'Egreso')
-        .reduce((sum, item) => sum + item.monto, 0);
+    // 2. Canchas Reservadas Hoy
+    const turnosHoy = canchasReservas.filter(r => r.fecha === hoyISO).length;
+    document.getElementById('stat-canchas').innerText = `${turnosHoy} Turno${turnosHoy !== 1 ? 's':''}`;
 
-    const cajaNetaHoy = ingresosHoy - egresosHoy;
+    // 3. Mesas en Uso Actual (Billiards active)
+    let activeBilliards = 0;
+    for (let i = 1; i <= 2; i++) {
+        if (activeMesasBillar[i] && activeMesasBillar[i].activo) activeBilliards++;
+    }
+    document.getElementById('stat-billar').innerText = `${activeBilliards} Activa${activeBilliards !== 1 ? 's':''}`;
 
-    // Reservas de hoy
-    const resHoy = canchasReservas.filter(r => r.fecha === hoyStr);
-    const totalReservasHoy = resHoy.length;
-    const ocupadasHoy = resHoy.filter(r => r.estado === 'Pagado' || r.estado === 'Pendiente').length;
-    const porcenOcupacion = totalReservasHoy > 0 ? Math.round((ocupadasHoy / 16) * 100) : 0; // 16 horas operativas estimadas
+    // 4. Saldos por Cobrar (Saldos de canchas hoy)
+    let saldosHoy = 0;
+    canchasReservas.filter(r => r.fecha === hoyISO).forEach(r => {
+        saldosHoy += parseFloat(r.saldo) || 0;
+    });
+    document.getElementById('stat-saldos').innerText = formatMoney(saldosHoy);
+}
 
-    // Inyectar en DOM
-    document.getElementById('dash-ingresos').innerText = formatMoney(ingresosHoy);
-    document.getElementById('dash-egresos').innerText = formatMoney(egresosHoy);
-    
-    const cajaNetEl = document.getElementById('dash-cajaneta');
-    cajaNetEl.innerText = formatMoney(cajaNetaHoy);
-    if(cajaNetaHoy >= 0) {
-        cajaNetEl.className = "text-xl md:text-2xl font-black text-emerald-600";
-    } else {
-        cajaNetEl.className = "text-xl md:text-2xl font-black text-red-500";
+// ================= MODULO CANCHAS (INTERACTIVIDAD) =================
+const ALTURA_FILA = 65;
+let cReservaSeleccionada = null; // Para editar/eliminar
+
+function renderizarAgendaCanchas() {
+    const contenedor = document.getElementById('contenedor-horas-canchas');
+    if (!contenedor) return;
+    contenedor.innerHTML = '';
+    const fechaFiltroISO = obtenerFechaISO(canchasFechaActual);
+
+    // Títulos y visual de la fecha
+    const opciones = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    document.getElementById('fecha-display').innerText = canchasFechaActual.toLocaleDateString('es-ES', opciones);
+    document.getElementById('canchas-date-picker').value = fechaFiltroISO;
+
+    // Generar cuadrícula horaria de 08:00 a 23:00
+    for (let hora = 8; hora <= 23; hora++) {
+        const fila = document.createElement('div');
+        fila.className = "grid grid-cols-[70px_1fr_1fr_1fr] min-h-[65px] border-b border-slate-200/80 relative";
+        
+        const colHora = document.createElement('div');
+        colHora.className = "text-[11px] text-slate-400 font-extrabold p-3.5 text-right border-r border-slate-200 bg-white font-mono";
+        colHora.innerText = `${hora < 10 ? '0'+hora : hora}:00`;
+        fila.appendChild(colHora);
+
+        for (let canchaId = 2; canchaId <= 4; canchaId++) {
+            const celda = document.createElement('div');
+            celda.className = `border-r border-slate-200/40 celda-interactiva cursor-pointer transition-all duration-100`;
+            
+            // Al hacer clic, abre el modal de reserva con la hora y cancha pre-seleccionadas
+            celda.onclick = () => {
+                abrirModalReservaCanchas(canchaId, `${hora < 10 ? '0'+hora : hora}:00`, `${(hora + 1) < 10 ? '0'+(hora + 1) : (hora + 1)}:00`);
+            };
+
+            fila.appendChild(celda);
+        }
+        contenedor.appendChild(fila);
     }
 
-    document.getElementById('dash-reservas-count').innerText = `${ocupadasHoy} Reservas`;
-    document.getElementById('dash-ocupacion-porc').innerText = `${porcenOcupacion}% Ocupación`;
+    // Pintar Reservas encima de las celdas
+    const reservasDia = canchasReservas.filter(r => r.fecha === fechaFiltroISO);
+    reservasDia.forEach(res => {
+        const pIn = res.inicioStr.split(':');
+        const pFi = res.finStr.split(':');
+        const horaIn = parseInt(pIn[0]) + (parseInt(pIn[1])/60);
+        const horaFi = parseInt(pFi[0]) + (parseInt(pFi[1])/60);
+        
+        const topBloque = (horaIn - 8) * ALTURA_FILA;
+        const alturaBloque = (horaFi - horaIn) * ALTURA_FILA;
+
+        let leftOffset = '70px';
+        let anchoColumna = '30.8%';
+        if (res.cancha === 3) leftOffset = 'calc(70px + 31.1%)';
+        if (res.cancha === 4) leftOffset = 'calc(70px + 62.2%)';
+
+        // Color dinámico según saldo / pago completo
+        const colorClase = obtenerColorTurno(res.total, res.acuenta);
+
+        const bloque = document.createElement('div');
+        bloque.className = `absolute ${colorClase} p-2 rounded-2xl border z-10 shadow-md overflow-hidden flex flex-col justify-center cursor-pointer text-center font-bold tracking-wide text-[11px] transition-all duration-150 transform hover:scale-[1.01] hover:shadow-lg`;
+        bloque.style.top = `${topBloque}px`;
+        bloque.style.left = leftOffset;
+        bloque.style.width = anchoColumna;
+        bloque.style.height = `${alturaBloque}px`;
+        bloque.innerHTML = `
+            <p class="truncate uppercase text-[11px] leading-tight">${res.cliente}</p>
+            <p class="text-[9px] opacity-90 font-medium bg-black/10 rounded-lg px-1.5 mt-1 inline-block mx-auto uppercase">${res.juego}</p>
+        `;
+        
+        bloque.onclick = (e) => {
+            e.stopPropagation();
+            abrirComprobanteCanchas(res);
+        };
+        contenedor.appendChild(bloque);
+    });
+
+    // Pintar línea de tiempo efectiva
+    renderizarLineaTiempoCanchas();
+    // Listar reservas del día en la barra lateral
+    renderizarListaCanchasDia();
 }
 
-// ================= MODULO CANCHAS (WALLY) =================
-const horasDia = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00"];
-let reservaSeleccionadaId = null;
-
-function cambiarFechaCanchas(offset) {
-    canchasFechaActual.setDate(canchasFechaActual.getDate() + offset);
-    renderizarPlanillaCanchas();
-}
-
-function establecerFechaHoyCanchas() {
-    canchasFechaActual = new Date();
-    renderizarPlanillaCanchas();
-}
-
-function renderizarPlanillaCanchas() {
-    const fechaStr = obtenerFechaISO(canchasFechaActual);
+function obtenerColorTurno(totalStr, acuentaStr) {
+    const total = parseFloat(totalStr) || 0;
+    const acuenta = parseFloat(acuentaStr) || 0;
+    const saldo = total - acuenta;
     
-    // Opciones de formato legibles en español
-    const opcionesDia = { weekday: 'long', day: 'numeric', month: 'long' };
-    let textoFecha = canchasFechaActual.toLocaleDateString('es-ES', opcionesDia);
-    textoFecha = textoFecha.charAt(0).toUpperCase() + textoFecha.slice(1);
+    if (saldo <= 0 && total > 0) {
+        return 'bg-emerald-600 border-emerald-700 text-white hover:bg-emerald-700'; 
+    } else if (acuenta > 0 && saldo > 0) {
+        return 'bg-blue-600 border-blue-700 text-white hover:bg-blue-700'; 
+    } else {
+        return 'bg-amber-500 border-amber-600 text-slate-900 hover:bg-amber-600'; 
+    }
+}
+
+function renderizarLineaTiempoCanchas() {
+    const contenedor = document.getElementById('contenedor-horas-canchas');
+    if (!contenedor) return;
+
+    const viejaLinea = document.getElementById('linea-tiempo-canchas');
+    if (viejaLinea) viejaLinea.remove();
+
+    const hoy = new Date();
+    if (obtenerFechaISO(canchasFechaActual) !== obtenerFechaISO(hoy)) return;
+
+    const h = hoy.getHours();
+    const m = hoy.getMinutes();
+
+    if (h >= 8 && h <= 23) {
+        const topPixel = (h - 8 + (m / 60)) * ALTURA_FILA;
+        const linea = document.createElement('div');
+        linea.id = 'linea-tiempo-canchas';
+        linea.className = "absolute left-0 right-0 z-20 pointer-events-none flex items-center";
+        linea.style.top = `${topPixel}px`;
+        linea.innerHTML = `
+            <div class="w-3.5 h-3.5 bg-red-600 rounded-full absolute left-[63px] -translate-x-1/2 shadow pulso-tiempo"></div>
+            <div class="w-full h-[2px] bg-red-500/80 ml-[68px]"></div>
+        `;
+        contenedor.appendChild(linea);
+    }
+}
+
+function renderizarListaCanchasDia() {
+    const lista = document.getElementById('lista-registros-canchas');
+    if (!lista) return;
+    lista.innerHTML = '';
     
-    document.getElementById('canchas-fecha-texto').innerText = textoFecha;
+    const fechaFiltroISO = obtenerFechaISO(canchasFechaActual);
+    const reservasDia = canchasReservas.filter(r => r.fecha === fechaFiltroISO);
 
-    const tbody = document.getElementById('body-tabla-canchas');
-    if (!tbody) return;
-    tbody.innerHTML = '';
+    if (reservasDia.length === 0) {
+        lista.innerHTML = `<p class="text-slate-400 text-center py-8 italic font-medium">No hay reservas para hoy.</p>`;
+        return;
+    }
 
-    // Filtrar reservas del día actual
-    const reservasDia = canchasReservas.filter(r => r.fecha === fechaStr);
+    reservasDia.forEach(res => {
+        const item = document.createElement('div');
+        item.className = "p-4 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2 hover:shadow transition relative";
+        
+        const esPagado = (parseFloat(res.saldo) <= 0);
+        const badgeEst = esPagado 
+            ? `<span class="bg-emerald-100 text-emerald-800 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase">Pagado</span>`
+            : `<span class="bg-amber-100 text-amber-800 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase">Saldo Bs ${res.saldo}</span>`;
 
-    horasDia.forEach(hora => {
-        const finHora = calcularFinHora(hora);
-        const tr = document.createElement('tr');
-        tr.className = "border-b border-slate-100 hover:bg-slate-50/50 transition";
-
-        // Celda Hora
-        let htmlRow = `<td class="p-3 font-bold text-slate-400 text-center bg-slate-50/80 shrink-0 select-none">${hora} - ${finHora}</td>`;
-
-        // Celda Cancha 1 y Cancha 2
-        for (let c = 1; c <= 2; c++) {
-            const res = reservasDia.find(r => r.cancha === c && r.inicio_str === hora);
-
-            if (res) {
-                let colorBg = "bg-amber-50 border-amber-200 hover:bg-amber-100/70 text-amber-800";
-                let badge = `<span class="bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-extrabold text-[9px] uppercase tracking-wide">PENDIENTE (Sald. ${res.saldo})</span>`;
-                
-                if (res.estado === 'Pagado') {
-                    colorBg = "bg-emerald-50 border-emerald-200 hover:bg-emerald-100/70 text-emerald-800";
-                    badge = `<span class="bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-extrabold text-[9px] uppercase tracking-wide">PAGADO COMPLETAMENTE</span>`;
-                }
-
-                htmlRow += `
-                    <td class="p-2">
-                        <div onclick="abrirComprobanteCanchas('${res.id}')" class="${colorBg} border p-2.5 rounded-xl cursor-pointer shadow-sm transition flex flex-col justify-between h-full min-h-[56px]">
-                            <div class="flex justify-between items-start gap-1">
-                                <span class="font-black text-xs uppercase tracking-wide truncate flex-1">${res.cliente}</span>
-                                <span class="font-black text-xs shrink-0">${formatMoney(res.total)}</span>
-                            </div>
-                            <div class="flex justify-between items-center mt-1.5 gap-2">
-                                <span class="text-[10px] text-slate-500 font-medium truncate">📞 ${res.telefono || 'Sin telf.'}</span>
-                                ${badge}
-                            </div>
-                        </div>
-                    </td>
-                `;
-            } else {
-                htmlRow += `
-                    <td class="p-2">
-                        <div onclick="abrirModalNuevaReserva(${c}, '${hora}')" class="border border-dashed border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 text-slate-300 hover:text-blue-500 rounded-xl p-3 text-center cursor-pointer font-bold text-xs uppercase tracking-widest transition celda-interactiva h-full min-h-[56px] flex items-center justify-center gap-1 select-none">
-                            <span>+ Reservar</span>
-                        </div>
-                    </td>
-                `;
-            }
-        }
-
-        tr.innerHTML = htmlRow;
-        tbody.appendChild(tr);
+        item.innerHTML = `
+            <div class="flex justify-between items-center border-b pb-1">
+                <strong class="text-slate-800 uppercase">${res.cliente}</strong>
+                <span class="text-cyan-700 font-extrabold text-[10px] uppercase">Cancha ${res.cancha}</span>
+            </div>
+            <div class="text-[10px] text-slate-500 space-y-1">
+                <p>⏱️ ${res.inicioStr} a ${res.finStr} | 🏆 ${res.juego}</p>
+                <div class="flex justify-between items-center">
+                    ${badgeEst}
+                    <button onclick='abrirComprobanteCanchasPorId("${res.id}")' class="text-slate-400 hover:text-slate-800 font-extrabold uppercase text-[9px]">Ver Ficha</button>
+                </div>
+            </div>
+        `;
+        lista.appendChild(item);
     });
 }
 
-function calcularFinHora(horaStr) {
-    const parts = horaStr.split(':');
-    let h = parseInt(parts[0]) + 1;
-    return (h < 10 ? '0' + h : h) + ':' + parts[1];
+// Navegación de Fechas Cancha
+function modificarFechaCanchas(dias) {
+    canchasFechaActual.setDate(canchasFechaActual.getDate() + dias);
+    renderizarAgendaCanchas();
 }
-
-// MODAL NUEVA / EDITAR RESERVA
-function abrirModalNuevaReserva(cancha, hora) {
-    document.getElementById('modal-canchas-titulo').innerText = "📝 Registrar Nueva Reserva";
-    document.getElementById('form-reserva-id').value = '';
-    document.getElementById('form-reserva-cancha').value = cancha;
-    document.getElementById('form-reserva-fecha').value = obtenerFechaISO(canchasFechaActual);
-    document.getElementById('form-reserva-inicio').value = hora;
-    document.getElementById('form-reserva-fin').value = calcularFinHora(hora);
-    
-    document.getElementById('form-reserva-cliente').value = '';
-    document.getElementById('form-reserva-telefono').value = '';
-    document.getElementById('form-reserva-total').value = 60; // Precio por defecto
-    document.getElementById('form-reserva-acuenta').value = 0;
-    document.getElementById('form-reserva-saldo').value = 60;
-    document.getElementById('form-reserva-nota').value = '';
-    document.getElementById('form-reserva-estado').value = 'Pendiente';
-
-    document.getElementById('btn-canchas-eliminar-modal').classList.add('hidden');
-    document.getElementById('modal-canchas').classList.remove('hidden');
+function establecerHoyCanchas() {
+    canchasFechaActual = new Date();
+    renderizarAgendaCanchas();
 }
-
-function calcularSaldoReserva() {
-    const tot = parseFloat(document.getElementById('form-reserva-total').value) || 0;
-    const acu = parseFloat(document.getElementById('form-reserva-acuenta').value) || 0;
-    const sal = tot - acu;
-    document.getElementById('form-reserva-saldo').value = sal >= 0 ? sal : 0;
-    
-    const estadoSel = document.getElementById('form-reserva-estado');
-    if(sal <= 0) {
-        estadoSel.value = 'Pagado';
-    } else {
-        estadoSel.value = 'Pendiente';
+function seleccionarFechaCanchas(valStr) {
+    if (valStr) {
+        const partes = valStr.split('-');
+        canchasFechaActual = new Date(partes[0], partes[1] - 1, partes[2]);
+        renderizarAgendaCanchas();
     }
+}
+
+// Modal Reserva Canchas
+function abrirModalReservaCanchas(cancha, inicioStr, finStr, idReserva = "") {
+    document.getElementById('form-canchas-id').value = idReserva;
+    document.getElementById('form-canchas-cancha').value = cancha;
+    document.getElementById('form-canchas-inicio').value = inicioStr;
+    document.getElementById('form-canchas-fin').value = finStr;
+    document.getElementById('form-canchas-fecha').value = obtenerFechaISO(canchasFechaActual);
+
+    if (!idReserva) {
+        document.getElementById('titulo-modal-canchas').innerText = "📋 Nueva Reserva Administrativa";
+        document.getElementById('form-canchas-cliente').value = '';
+        document.getElementById('form-canchas-telefono').value = '';
+        document.getElementById('form-canchas-total').value = '60.00';
+        document.getElementById('form-canchas-acuenta').value = '0.00';
+        document.getElementById('form-canchas-saldo').innerText = '60.00 Bs.';
+    }
+
+    document.getElementById('modal-reserva-canchas').classList.remove('hidden');
+}
+
+function abrirModalReservaCanchasManual() {
+    abrirModalReservaCanchas(2, "19:00", "20:00");
 }
 
 function cerrarModalCanchas() {
-    document.getElementById('modal-canchas').classList.add('hidden');
+    document.getElementById('modal-reserva-canchas').classList.add('hidden');
 }
 
-async function guardarReservaCancha(e) {
-    e.preventDefault();
-    const idReserva = document.getElementById('form-reserva-id').value;
-    const canchaSel = document.getElementById('form-reserva-cancha').value;
-    const fechaSel = document.getElementById('form-reserva-fecha').value;
-    const inicioSel = document.getElementById('form-reserva-inicio').value;
-    const finSel = document.getElementById('form-reserva-fin').value;
-    
-    const cliente = document.getElementById('form-reserva-cliente').value.trim();
-    const telefono = document.getElementById('form-reserva-telefono').value.trim();
-    const total = parseFloat(document.getElementById('form-reserva-total').value) || 0;
-    const acuenta = parseFloat(document.getElementById('form-reserva-acuenta').value) || 0;
-    const saldo = parseFloat(document.getElementById('form-reserva-saldo').value) || 0;
-    const estado = document.getElementById('form-reserva-estado').value;
-    const nota = document.getElementById('form-reserva-nota').value.trim();
+function calcularSaldoCanchasForm() {
+    const tot = parseFloat(document.getElementById('form-canchas-total').value) || 0;
+    const acu = parseFloat(document.getElementById('form-canchas-acuenta').value) || 0;
+    const sal = (tot - acu).toFixed(2);
+    document.getElementById('form-canchas-saldo').innerText = `${sal} Bs.`;
+}
 
-    if(!cliente) { alert("Ingresa el nombre del cliente."); return; }
+function guardarReservaCanchas() {
+    const id = document.getElementById('form-canchas-id').value;
+    const cliente = document.getElementById('form-canchas-cliente').value.trim() || 'Cliente General';
+    const telefono = document.getElementById('form-canchas-telefono').value;
+    const fecha = document.getElementById('form-canchas-fecha').value;
+    const cancha = parseInt(document.getElementById('form-canchas-cancha').value);
+    const juego = document.getElementById('form-canchas-juego').value;
+    const inicio = document.getElementById('form-canchas-inicio').value;
+    const fin = document.getElementById('form-canchas-fin').value;
+    const total = parseFloat(document.getElementById('form-canchas-total').value) || 0;
+    const acuenta = parseFloat(document.getElementById('form-canchas-acuenta').value) || 0;
+    const saldo = (total - acuenta).toFixed(2);
 
-    const esEdicion = idReserva !== '';
-    const finalId = esEdicion ? idReserva : Date.now().toString();
+    const timestamp = new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
 
-    const nuevaReserva = {
-        id: finalId,
-        cancha: parseInt(canchaSel),
-        cliente,
-        telefono,
-        fecha: fechaSel,
-        inicio_str: inicioSel,
-        fin_str: finSel,
-        total,
-        acuenta,
-        saldo,
-        estado,
-        nota
-    };
+    if (id) {
+        // Modificar existente
+        const index = canchasReservas.findIndex(r => r.id === id);
+        if (index !== -1) {
+            const vieja = canchasReservas[index];
+            const logs = [...(vieja.historial || [])];
+            logs.push(`Modificado: Total ${total.toFixed(2)} / Adelanto: ${acuenta.toFixed(2)} Bs. a las ${timestamp}`);
+            
+            canchasReservas[index] = {
+                id, cancha, inicioStr: inicio, finStr: fin, fecha, telefono, cliente, juego,
+                total: total.toFixed(2), acuenta: acuenta.toFixed(2), saldo, historial: logs
+            };
 
-    if (esEdicion) {
-        // Actualizar en Supabase
-        const { error } = await supabase.from('canchas_reservas').update(nuevaReserva).eq('id', finalId);
-        if (error) { alert("Error al editar reserva en Supabase: " + error.message); return; }
-
-        const idx = canchasReservas.findIndex(r => r.id === finalId);
-        if (idx !== -1) canchasReservas[idx] = nuevaReserva;
+            // Registrar cobro parcial en caja si cambió el acuenta a más
+            const diffAcuenta = acuenta - parseFloat(vieja.acuenta);
+            if (diffAcuenta > 0) {
+                registrarEnFlujoCaja('Ingreso', 'Canchas', `Abono/Saldo cancha de ${cliente} (Cancha ${cancha})`, diffAcuenta);
+            }
+        }
     } else {
-        // Insertar en Supabase
-        const { error } = await supabase.from('canchas_reservas').insert([nuevaReserva]);
-        if (error) { alert("Error al crear reserva en Supabase: " + error.message); return; }
+        // Crear nueva reserva
+        const nueva = {
+            id: Date.now().toString(),
+            cancha, inicioStr: inicio, finStr: fin, fecha, telefono, cliente, juego,
+            total: total.toFixed(2), acuenta: acuenta.toFixed(2), saldo,
+            historial: [`Creado originalmente a las ${timestamp} con adelanto de ${acuenta.toFixed(2)} Bs.`]
+        };
+        canchasReservas.push(nueva);
 
-        canchasReservas.push(nuevaReserva);
-
-        // Si dejó dinero a cuenta, impacta automáticamente en Flujo de Caja
+        // Si hay abono inicial registrar en Flujo de Caja
         if (acuenta > 0) {
-            await registrarEnFlujoCaja('Ingreso', 'Canchas', `Seña Cancha ${canchaSel} - ${cliente}`, acuenta);
+            registrarEnFlujoCaja('Ingreso', 'Canchas', `Adelanto cancha de ${cliente} (Cancha ${cancha})`, acuenta);
         }
     }
 
+    guardarCanchas();
     cerrarModalCanchas();
-    renderizarPlanillaCanchas();
-    actualizarDashboardEstadisticas();
-    playAlarmaSonido();
+    renderizarAgendaCanchas();
 }
 
-// COMPROBANTE / VISTA DETALLE RESERVA
-function abrirComprobanteCanchas(id) {
-    const res = canchasReservas.find(r => r.id === id);
-    if(!res) return;
-    reservaSeleccionadaId = id;
-
-    document.getElementById('comp-fecha').innerText = res.fecha;
-    document.getElementById('comp-horario').innerText = `${res.inicio_str} a ${res.fin_str}`;
-    document.getElementById('comp-cancha').innerText = `CANCHA 0${res.cancha}`;
+// Ficha/Comprobante Canchas
+function abrirComprobanteCanchas(res) {
+    cReservaSeleccionada = res;
     document.getElementById('comp-cliente').innerText = res.cliente;
-    document.getElementById('comp-telefono').innerText = res.telefono || 'Ninguno';
-    document.getElementById('comp-nota').innerText = res.nota || 'Sin observaciones.';
-    document.getElementById('comp-total').innerText = formatMoney(res.total);
-    document.getElementById('comp-acuenta').innerText = formatMoney(res.acuenta);
-    document.getElementById('comp-saldo').innerText = formatMoney(res.saldo);
+    document.getElementById('comp-cancha').innerText = `Cancha ${res.cancha} (${res.cancha === 2 ? 'Wally/Vóley' : res.cancha === 3 ? 'Futbito' : 'Raquetbol'})`;
+    document.getElementById('comp-juego').innerText = res.juego;
+    document.getElementById('comp-fecha').innerText = res.fecha;
+    document.getElementById('comp-inicio').innerText = res.inicioStr;
+    document.getElementById('comp-fin').innerText = res.finStr;
+    document.getElementById('comp-total').innerText = `${res.total} Bs.`;
+    document.getElementById('comp-acuenta').innerText = `${res.acuenta} Bs.`;
+    document.getElementById('comp-saldo').innerText = `${res.saldo} Bs.`;
 
-    const btnEditar = document.getElementById('btn-comp-editar');
-    btnEditar.onclick = function() {
+    // Botón editar
+    document.getElementById('btn-comp-editar').onclick = () => {
         cerrarComprobanteCanchas();
-        abrirModalEditarReserva(res.id);
+        abrirModalReservaCanchas(res.cancha, res.inicioStr, res.finStr, res.id);
+        document.getElementById('form-canchas-cliente').value = res.cliente;
+        document.getElementById('form-canchas-telefono').value = res.telefono;
+        document.getElementById('form-canchas-total').value = res.total;
+        document.getElementById('form-canchas-acuenta').value = res.acuenta;
+        document.getElementById('form-canchas-fecha').value = res.fecha;
+        calcularSaldoCanchasForm();
     };
 
     document.getElementById('modal-comprobante-canchas').classList.remove('hidden');
 }
 
+function abrirComprobanteCanchasPorId(id) {
+    const res = canchasReservas.find(r => r.id === id);
+    if (res) abrirComprobanteCanchas(res);
+}
+
 function cerrarComprobanteCanchas() {
     document.getElementById('modal-comprobante-canchas').classList.add('hidden');
-    reservaSeleccionadaId = null;
+    cReservaSeleccionada = null;
 }
 
-function abrirModalEditarReserva(id) {
-    const res = canchasReservas.find(r => r.id === id);
-    if(!res) return;
-
-    document.getElementById('modal-canchas-titulo').innerText = "✏️ Editar / Liquidar Reserva";
-    document.getElementById('form-reserva-id').value = res.id;
-    document.getElementById('form-reserva-cancha').value = res.cancha;
-    document.getElementById('form-reserva-fecha').value = res.fecha;
-    document.getElementById('form-reserva-inicio').value = res.inicio_str;
-    document.getElementById('form-reserva-fin').value = res.fin_str;
-    
-    document.getElementById('form-reserva-cliente').value = res.cliente;
-    document.getElementById('form-reserva-telefono').value = res.telefono;
-    document.getElementById('form-reserva-total').value = res.total;
-    document.getElementById('form-reserva-acuenta').value = res.acuenta;
-    document.getElementById('form-reserva-saldo').value = res.saldo;
-    document.getElementById('form-reserva-nota').value = res.nota;
-    document.getElementById('form-reserva-estado').value = res.estado;
-
-    document.getElementById('btn-canchas-eliminar-modal').classList.remove('hidden');
-    document.getElementById('modal-canchas').classList.remove('hidden');
-}
-
-async function liberarCanchaCompleta() {
-    const targetId = reservaSeleccionadaId || document.getElementById('form-reserva-id').value;
-    if (!targetId) return;
-
-    if (confirm("¿Estás seguro de que deseas eliminar permanentemente esta reserva de la nube?")) {
-        const { error } = await supabase.from('canchas_reservas').delete().eq('id', targetId);
-        if (error) { alert("No se pudo eliminar la reserva en Supabase: " + error.message); return; }
-
-        canchasReservas = canchasReservas.filter(r => r.id !== targetId);
-        cerrarComprobanteCanchas();
-        cerrarModalCanchas();
-        renderizarPlanillaCanchas();
-        actualizarDashboardEstadisticas();
-        alert("Reserva eliminada de la nube.");
+function liberarCanchaCompleta() {
+    if (cReservaSeleccionada) {
+        const res = cReservaSeleccionada;
+        if (confirm(`¿Estás seguro de liberar la reserva de "${res.cliente}" en Cancha ${res.cancha}?`)) {
+            canchasReservas = canchasReservas.filter(r => r.id !== res.id);
+            guardarCanchas();
+            cerrarComprobanteCanchas();
+            renderizarAgendaCanchas();
+        }
     }
 }
 
-// ================= MODULO BILLAR & SNACK (LOCAL POR EL MOMENTO) =================
-const mesasBillarConfig = [
-    { num: 1, tipo: 'Pool' },
-    { num: 2, tipo: 'Pool' },
-    { num: 3, tipo: 'Carambola' }
-];
-let mesasEstado = {}; 
-mesasBillarConfig.forEach(m => {
-    mesasEstado[m.num] = { activa: false, cliente: '', inicio: null, intervalo: null };
-});
+// ================= MODULO BILLAR (LOGICA DE TIEMPOS) =================
+let activeMesasBillar = {
+    1: { activo: false, modo: 'cronometro', inicio: null, minutosAjustados: 60, intervalo: null },
+    2: { activo: false, modo: 'cronometro', inicio: null, minutosAjustados: 60, intervalo: null }
+};
+const TARIFA_FIJA_HORA = 15.00;
 
-function toggleMesaBillar(num) {
-    const estado = mesasEstado[num];
-    if (!estado.activa) {
-        const cl = prompt("Nombre del Cliente para Mesa " + num + ":");
-        if(cl && cl.trim()) {
-            estado.activa = true;
-            estado.cliente = cl.trim();
-            estado.inicio = new Date();
+function renderizarBillarMonitor() {
+    renderHistorialBillar();
+    for (let id = 1; id <= 2; id++) {
+        syncMesaBillarUI(id);
+    }
+}
+
+function setModeBillar(idMesa, modo) {
+    if (activeMesasBillar[idMesa].activo) return;
+    activeMesasBillar[idMesa].modo = modo;
+    
+    const btnCron = document.getElementById(`btnModeCron-${idMesa}`);
+    const btnTemp = document.getElementById(`btnModeTemp-${idMesa}`);
+    const wrapper = document.getElementById(`wrapperMinutos-${idMesa}`);
+    const lblTiempo = document.getElementById(`lblTiempo-${idMesa}`);
+    const lblFin = document.getElementById(`lblFin-${idMesa}`);
+
+    if (modo === 'cronometro') {
+        btnCron.className = "flex-1 bg-cyan-600 text-white font-bold py-1.5 rounded-lg text-[10px] uppercase tracking-wider shadow";
+        btnTemp.className = "flex-1 text-slate-500 hover:text-slate-700 font-bold py-1.5 rounded-lg text-[10px] uppercase tracking-wider";
+        wrapper.classList.add('hidden');
+        lblTiempo.textContent = "Tiempo de Juego:";
+        lblFin.textContent = "Hora Actual";
+    } else {
+        btnTemp.className = "flex-1 bg-cyan-600 text-white font-bold py-1.5 rounded-lg text-[10px] uppercase tracking-wider shadow";
+        btnCron.className = "flex-1 text-slate-500 hover:text-slate-700 font-bold py-1.5 rounded-lg text-[10px] uppercase tracking-wider";
+        wrapper.classList.remove('hidden');
+        lblTiempo.textContent = "Tiempo Restante:";
+        lblFin.textContent = "Fin Prometido";
+    }
+}
+
+function toggleMesaBillar(idMesa) {
+    let m = activeMesasBillar[idMesa];
+    let btnMain = document.getElementById(`btnMain-${idMesa}`);
+    let badge = document.getElementById(`badge-${idMesa}`);
+    let stateSelect = document.getElementById(`paymentStatus-${idMesa}`);
+
+    if (!m.activo) {
+        // --- INICIAR JUEGO ---
+        m.activo = true;
+        m.inicio = new Date();
+
+        if (m.modo === 'temporizador') {
+            let mins = parseInt(document.getElementById(`inputMinutos-${idMesa}`).value) || 60;
+            m.minutosAjustados = mins;
+            m.finEstimado = new Date(m.inicio.getTime() + mins * 60000);
             
-            document.getElementById(`billar-card-${num}`).className = "bg-red-50 border border-red-200 rounded-3xl p-5 shadow-sm space-y-4 relative overflow-hidden";
-            document.getElementById(`billar-status-${num}`).className = "bg-red-200 text-red-900 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider pulso-tiempo";
-            document.getElementById(`billar-status-${num}`).innerText = "🔴 En Juego";
-            document.getElementById(`billar-cliente-${num}`).innerText = estado.cliente;
-            document.getElementById(`billar-btn-${num}`).innerText = "🛑 Detener e Imprimir Caja";
-            document.getElementById(`billar-btn-${num}`).className = "w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 rounded-xl text-xs uppercase tracking-wider transition shadow";
+            document.getElementById(`valFin-${idMesa}`).textContent = m.finEstimado.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            badge.textContent = "⏳ Temporizador";
+            badge.className = "status-badge bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border border-amber-200";
+        } else {
+            badge.textContent = "⏱ Cronómetro";
+            badge.className = "status-badge bg-cyan-150 text-cyan-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border border-cyan-200";
+        }
+
+        document.getElementById(`valInicio-${idMesa}`).textContent = m.inicio.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+        
+        cicloCalculoBillar(idMesa);
+        m.intervalo = setInterval(() => { cicloCalculoBillar(idMesa); }, 1000);
+
+        btnMain.textContent = "🛑 Terminar y Cobrar";
+        btnMain.className = "w-full bg-red-650 hover:bg-red-700 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition shadow-md";
+        
+        actualizarDashboardEstadisticas();
+    } else {
+        // --- DETENER Y COBRAR ---
+        clearInterval(m.intervalo);
+        let finReal = new Date();
+        let segs = Math.floor((finReal - m.inicio) / 1000);
+        if (segs < 0) segs = 0;
+        let mins = segs / 60;
+        let importeFinal = 0;
+        let duracionFormateada = formatearSegundos(segs);
+
+        if (m.modo === 'cronometro') {
+            importeFinal = calcularCostoBillarEspecial(mins);
+        } else {
+            if (mins > m.minutosAjustados) {
+                let basePactada = parseFloat(calcularCostoBillarEspecial(m.minutosAjustados));
+                let minsExtra = mins - m.minutosAjustados;
+                let costoExtra = (minsExtra / 60) * TARIFA_FIJA_HORA;
+                importeFinal = (basePactada + costoExtra).toFixed(2);
+            } else {
+                importeFinal = calcularCostoBillarEspecial(m.minutosAjustados);
+            }
+            duracionFormateada += ` (${m.minutosAjustados}m pactados)`;
+        }
+
+        let estadoDePago = stateSelect.value;
+        
+        // Guardar en Historial Billar
+        const nuevoItem = {
+            mesa: idMesa,
+            modo: m.modo === 'cronometro' ? 'Cronómetro' : 'Temporizador',
+            fecha: finReal.toLocaleDateString(),
+            inicioStr: m.inicio.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            finStr: finReal.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            duracion: duracionFormateada,
+            importe: importeFinal,
+            estado: estadoDePago
+        };
+        billarHistorial.unshift(nuevoItem);
+        guardarBillarHistorial();
+
+        // Registrar en caja si está pagado
+        if (estadoDePago === 'Pagado') {
+            registrarEnFlujoCaja('Ingreso', 'Billar', `Alquiler Mesa ${idMesa} (${duracionFormateada})`, importeFinal);
+        }
+
+        // Resetear estados
+        m.activo = false;
+        m.intervalo = null;
+
+        btnMain.textContent = "⚡ Iniciar Juego";
+        btnMain.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition shadow-md";
+        badge.textContent = "Disponible";
+        badge.className = "status-badge bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-slate-200";
+        
+        document.getElementById(`valInicio-${idMesa}`).textContent = "--:--:--";
+        document.getElementById(`valFin-${idMesa}`).textContent = "--:--:--";
+        document.getElementById(`valTiempo-${idMesa}`).textContent = "00:00:00";
+        document.getElementById(`valImporte-${idMesa}`).textContent = "Bs 0.00";
+        document.getElementById(`valTiempo-${idMesa}`).style.color = "";
+        stateSelect.value = "Por pagar";
+
+        setModeBillar(idMesa, m.modo);
+        renderHistorialBillar();
+        actualizarDashboardEstadisticas();
+
+        alert(`MESA ${idMesa} CERRADA\n-------------------------\nDuración: ${duracionFormateada}\nEstado: ${estadoDePago}\nTotal: Bs ${importeFinal}`);
+    }
+}
+
+function cicloCalculoBillar(idMesa) {
+    let m = activeMesasBillar[idMesa];
+    let ahora = new Date();
+    let segs = Math.floor((ahora - m.inicio) / 1000);
+
+    let displayTiempo = document.getElementById(`valTiempo-${idMesa}`);
+    let displayImporte = document.getElementById(`valImporte-${idMesa}`);
+    let displayHoraActual = document.getElementById(`valFin-${idMesa}`);
+
+    let mins = segs / 60;
+
+    if (m.modo === 'cronometro') {
+        displayHoraActual.textContent = ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+        displayTiempo.textContent = formatearSegundos(segs);
+        displayImporte.textContent = `Bs ${calcularCostoBillarEspecial(mins)}`;
+    } else {
+        let segsTotalesPrometidos = m.minutosAjustados * 60;
+        let segsRestantes = segsTotalesPrometidos - segs;
+
+        if (segsRestantes <= 0) {
+            displayTiempo.textContent = "¡TIEMPO CUMPLIDO!";
+            displayTiempo.style.color = "red";
+            if (segsRestantes % 5 === 0) playAlarmaSonido();
             
-            estado.intervalo = setInterval(() => {
-                const trans = calcularTiempoDineroBillar(estado.inicio);
-                document.getElementById(`billar-tiempo-${num}`).innerText = trans.tiempoStr;
-                document.getElementById(`billar-monto-${num}`).innerText = formatMoney(trans.costo);
-            }, 1000);
+            let basePactada = parseFloat(calcularCostoBillarEspecial(m.minutosAjustados));
+            let minsExtra = mins - m.minutosAjustados;
+            let costoExtra = (minsExtra / 60) * TARIFA_FIJA_HORA;
+            displayImporte.textContent = `Bs ${(basePactada + costoExtra).toFixed(2)}`;
+        } else {
+            displayTiempo.textContent = formatearSegundos(segsRestantes);
+            displayImporte.textContent = `Bs ${calcularCostoBillarEspecial(m.minutosAjustados)}`;
+        }
+    }
+}
+
+function calcularCostoBillarEspecial(minutos) {
+    if (minutos <= 0) return "0.00";
+    
+    if (minutos >= 15 && minutos < 30) {
+        return "4.00"; // Salto de 15 minutos
+    } else if (minutos >= 30 && minutos < 60) {
+        return "8.00"; // Salto de 30 minutos
+    } else {
+        // Menos de 15 min O más de 60 min proporcional a 15.00 Bs/hora
+        let costoProporcional = (minutos / 60) * TARIFA_FIJA_HORA;
+        return costoProporcional.toFixed(2);
+    }
+}
+
+function formatearSegundos(totalSegundos) {
+    let hrs = Math.floor(totalSegundos / 3600);
+    let mins = Math.floor((totalSegundos % 3600) / 60);
+    let secs = totalSegundos % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function syncMesaBillarUI(idMesa) {
+    // Sincroniza la visual de la mesa en caso de estar activa al navegar de nuevo
+    let m = activeMesasBillar[idMesa];
+    let btnMain = document.getElementById(`btnMain-${idMesa}`);
+    let badge = document.getElementById(`badge-${idMesa}`);
+
+    if (m.activo) {
+        btnMain.textContent = "🛑 Terminar y Cobrar";
+        btnMain.className = "w-full bg-red-650 hover:bg-red-700 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition shadow-md";
+        
+        if (m.modo === 'temporizador') {
+            badge.textContent = "⏳ Temporizador";
+            badge.className = "status-badge bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border border-amber-200";
+        } else {
+            badge.textContent = "⏱ Cronómetro";
+            badge.className = "status-badge bg-cyan-150 text-cyan-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border border-cyan-200";
         }
     } else {
-        if(confirm(`¿Finalizar el juego de la mesa ${num} para ${estado.cliente}?`)) {
-            clearInterval(estado.intervalo);
-            const trans = calcularTiempoDineroBillar(estado.inicio);
-            
-            registrarEnFlujoCaja('Ingreso', 'Billar', `Mesa ${num} (${mesasBillarConfig.find(m=>m.num===num).tipo}) - ${estado.cliente} (${trans.tiempoStr})`, trans.costo);
-
-            estado.activa = false;
-            estado.cliente = '';
-            estado.inicio = null;
-            estado.intervalo = null;
-
-            document.getElementById(`billar-card-${num}`).className = "bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4 relative overflow-hidden";
-            document.getElementById(`billar-status-${num}`).className = "bg-emerald-100 text-emerald-800 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider";
-            document.getElementById(`billar-status-${num}`).innerText = "🟢 Disponible";
-            document.getElementById(`billar-cliente-${num}`).innerText = "Ninguno";
-            document.getElementById(`billar-tiempo-${num}`).innerText = "00:00:00";
-            document.getElementById(`billar-monto-${num}`).innerText = "Bs 0.00";
-            document.getElementById(`billar-btn-${num}`).innerText = "🎯 Iniciar Mesa";
-            document.getElementById(`billar-btn-${num}`).className = "w-full bg-slate-800 hover:bg-slate-700 text-white font-black py-2.5 rounded-xl text-xs uppercase tracking-wider transition shadow";
-            
-            alert(`Juego Terminado.\nTiempo: ${trans.tiempoStr}\nTotal cobrado: ${formatMoney(trans.costo)}`);
-        }
+        setModeBillar(idMesa, m.modo);
     }
 }
 
-function calcularTiempoDineroBillar(inicioDate) {
-    const diffMs = new Date() - inicioDate;
-    const diffSecs = Math.floor(diffMs / 1000);
-    const hrs = Math.floor(diffSecs / 3600);
-    const mins = Math.floor((diffSecs % 3600) / 60);
-    const secs = diffSecs % 60;
+function toggleHistoryBillar() {
+    document.getElementById('historySectionBillar').classList.toggle('hidden');
+}
+function limpiarHistorialBillar() {
+    if (confirm("¿Seguro de limpiar el historial de billar?")) {
+        billarHistorial = [];
+        guardarBillarHistorial();
+        renderHistorialBillar();
+    }
+}
 
-    const tiempoStr = `${hrs<10?'0'+hrs:hrs}:${mins<10?'0'+mins:mins}:${secs<10?'0'+secs:secs}`;
-    const precioPorHora = 15.00; 
-    let costo = (diffSecs / 3600) * precioPorHora;
-    if (costo < 1.00 && diffSecs > 5) costo = 1.00; // Mínimo cobro
-    
-    return { tiempoStr, costo: parseFloat(costo.toFixed(2)) };
+function renderHistorialBillar() {
+    const tbody = document.getElementById('recordsTableBodyBillar');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (billarHistorial.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-slate-400 italic">No hay registros aún.</td></tr>`;
+        return;
+    }
+
+    billarHistorial.forEach(h => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="p-3"><b>Mesa ${h.mesa}</b></td>
+            <td class="p-3"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold uppercase text-[9px]">${h.modo}</span></td>
+            <td class="p-3 text-slate-500">${h.fecha} | ${h.inicioStr}-${h.finStr}</td>
+            <td class="p-3 font-mono">${h.duracion}</td>
+            <td class="p-3"><span class="${h.estado === 'Pagado' ? 'text-emerald-600':'text-red-500'} font-bold">${h.estado}</span></td>
+            <td class="p-3 text-right font-black text-emerald-600">Bs ${h.importe}</td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 // ================= MODULO TIENDA & POS =================
+let filtroCategoriaPOS = '';
 
 function cambiarSubModuloTienda(sub) {
     tiendaSubModuloActivo = sub;
@@ -511,7 +792,7 @@ function cambiarSubModuloTienda(sub) {
     }
 }
 
-// INVENTARIO / STOCK
+// INVENTARIO
 function renderCategoriasTienda() {
     const select = document.getElementById('prodCategoria');
     if (select) {
@@ -522,24 +803,20 @@ function renderCategoriasTienda() {
     }
 }
 
-async function agregarCategoriaTienda() {
+function agregarCategoriaTienda() {
     const n = prompt("Nombre de la nueva categoría:");
     if (n && n.trim()) {
         const clean = n.trim();
         if (!tiendaCategorias.includes(clean)) {
-            // Guardar en Supabase
-            const { error } = await supabase.from('tienda_categorias').insert([{ nombre: clean }]);
-            if (error) { alert("Error al guardar categoría en la nube: " + error.message); return; }
-
             tiendaCategorias.push(clean);
+            guardarTiendaCategorias();
             renderCategoriasTienda();
-            renderCategoriasFiltrosPOS();
             renderProductosPOS();
         }
     }
 }
 
-async function guardarProductoTienda(e) {
+function guardarProductoTienda(e) {
     e.preventDefault();
     const nombre = document.getElementById('prodNombre').value.trim();
     const categoria = document.getElementById('prodCategoria').value;
@@ -547,23 +824,22 @@ async function guardarProductoTienda(e) {
     const stock = parseInt(document.getElementById('prodStock').value) || 0;
 
     if (nombre && categoria) {
-        const finalId = Date.now(); // Usamos ID numérico único
         const nuevo = {
-            id: finalId,
+            id: Date.now(),
             nombre,
             categoria,
             precio,
             stock
+            // Se eliminó por completo la propiedad de la imagen
         };
-
-        // Guardar en la tabla de Supabase
-        const { error } = await supabase.from('tienda_productos').insert([nuevo]);
-        if (error) { alert("Error al añadir producto a la nube: " + error.message); return; }
-
         tiendaProductos.push(nuevo);
+        guardarTiendaProductos();
+
+        // Limpiar form
         document.getElementById('productForm').reset();
+
         renderProductosTienda();
-        alert("Producto añadido exitosamente a la base de datos.");
+        alert("Producto añadido exitosamente.");
     }
 }
 
@@ -575,12 +851,14 @@ function renderProductosTienda() {
     document.getElementById('contadorProductos').innerText = `${tiendaProductos.length} Producto(s)`;
 
     if (tiendaProductos.length === 0) {
+        // Cambiado el colspan a 5 ya que eliminamos la columna de fotos
         tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-slate-400 italic">No hay productos en stock.</td></tr>`;
         return;
     }
 
     tiendaProductos.forEach(p => {
         const tr = document.createElement('tr');
+        // Se removió la celda <td> con el tag <img>
         tr.innerHTML = `
             <td class="p-3"><b>${p.nombre}</b></td>
             <td class="p-3"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase">${p.categoria}</span></td>
@@ -592,285 +870,111 @@ function renderProductosTienda() {
     });
 }
 
-async function eliminarProductoInventario(id) {
-    if (confirm("¿Estás seguro de eliminar este producto de la nube?")) {
-        const { error } = await supabase.from('tienda_productos').delete().eq('id', id);
-        if (error) { alert("No se pudo eliminar el producto de Supabase: " + error.message); return; }
-
+function eliminarProductoInventario(id) {
+    if (confirm("¿Estás seguro de eliminar este producto?")) {
         tiendaProductos = tiendaProductos.filter(p => p.id !== id);
+        guardarTiendaProductos();
         renderProductosTienda();
     }
 }
 
-// CAJA / VENTAS POS
-function renderCategoriasFiltrosPOS() {
-    const container = document.getElementById('categorias-filtro-pos');
-    if(!container) return;
-    
-    let html = `<button onclick="filtrarCategoriaPOS_Click('')" class="px-3 py-1.5 rounded-xl text-[10px] uppercase font-black tracking-wider transition ${filtroCategoriaPOS===''?'bg-blue-600 text-white':'bg-slate-100 text-slate-500 hover:bg-slate-200'}">Todos</button>`;
-    
-    tiendaCategorias.forEach(cat => {
-        html += `<button onclick="filtrarCategoriaPOS_Click('${cat}')" class="px-3 py-1.5 rounded-xl text-[10px] uppercase font-black tracking-wider transition shrink-0 ${filtroCategoriaPOS===cat?'bg-blue-600 text-white':'bg-slate-100 text-slate-500 hover:bg-slate-200'}">${cat}</button>`;
-    });
-    container.innerHTML = html;
-}
-
-function filtrarCategoriaPOS_Click(cat) {
-    filtroCategoriaPOS = cat;
-    renderCategoriasFiltrosPOS();
-    renderProductosPOS();
-}
-
-function filtrarProductosPOS() {
-    renderProductosPOS();
-}
-
-function renderProductosPOS() {
-    const grid = document.getElementById('grid-productos-pos');
-    if(!grid) return;
-    grid.innerHTML = '';
-
-    const buscador = document.getElementById('buscador-pos').value.toLowerCase().trim();
-
-    let listado = tiendaProductos;
-    if(filtroCategoriaPOS !== '') {
-        listado = listado.filter(p => p.categoria === filtroCategoriaPOS);
-    }
-    if(buscador !== '') {
-        listado = listado.filter(p => p.nombre.toLowerCase().includes(buscador));
-    }
-
-    if(listado.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center p-8 text-slate-400 italic">Ningún producto coincide con el filtro.</div>`;
-        return;
-    }
-
-    listado.forEach(p => {
-        const sinStock = p.stock <= 0;
-        const card = document.createElement('div');
-        card.className = `bg-white border border-slate-200 rounded-2xl p-3 shadow-sm flex flex-col justify-between transition relative ${sinStock?'opacity-60 select-none': 'hover:shadow-md cursor-pointer'}`;
-        if(!sinStock) {
-            card.onclick = () => agregarAlCarritoPOS(p.id);
-        }
-
-        card.innerHTML = `
-            <div>
-                <div class="flex justify-between items-start gap-1">
-                    <h5 class="font-extrabold text-xs text-slate-800 uppercase tracking-wide line-clamp-2">${p.nombre}</h5>
-                </div>
-                <span class="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded uppercase mt-1 inline-block">${p.categoria}</span>
-            </div>
-            <div class="flex justify-between items-center mt-3 border-t border-slate-50 pt-2">
-                <span class="text-blue-600 font-black text-xs">${formatMoney(p.precio)}</span>
-                <span class="text-[10px] font-extrabold ${p.stock<=2?'text-red-500':'text-slate-400'}">Stock: ${p.stock}</span>
-            </div>
-            ${sinStock?'<div class="absolute inset-0 bg-white/40 flex items-center justify-center rounded-2xl"><span class="bg-red-500 text-white font-black text-[9px] px-2 py-0.5 rounded uppercase tracking-wider">Agotado</span></div>':''}
-        `;
-        grid.appendChild(card);
-    });
-}
-
-// CARRITO COMPRAS
-function agregarAlCarritoPOS(id) {
-    const prod = tiendaProductos.find(p => p.id === id);
-    if(!prod || prod.stock <= 0) return;
-
-    const exist = tiendaCarrito.find(item => item.id === id);
-    if(exist) {
-        if(exist.cantidad < prod.stock) {
-            exist.cantidad++;
-        } else {
-            alert("No puedes agregar más unidades que el stock disponible en almacén.");
-            return;
-        }
-    } else {
-        tiendaCarrito.push({ id: prod.id, nombre: prod.nombre, precio: prod.precio, cantidad: 1 });
-    }
-    renderCarritoPOS();
-}
-
-function cambiarCantidadCarrito(id, delta) {
-    const item = tiendaCarrito.find(i => i.id === id);
-    const prod = tiendaProductos.find(p => p.id === id);
-    if(!item || !prod) return;
-
-    item.cantidad += delta;
-    if(item.cantidad <= 0) {
-        tiendaCarrito = tiendaCarrito.filter(i => i.id !== id);
-    } else if(item.cantidad > prod.stock) {
-        alert("Límite de stock alcanzado.");
-        item.cantidad = prod.stock;
-    }
-    renderCarritoPOS();
-}
-
-function vaciarCarrito() {
-    tiendaCarrito = [];
-    renderCarritoPOS();
-}
-
-function renderCarritoPOS() {
-    const container = document.getElementById('carrito-items');
-    if(!container) return;
-    container.innerHTML = '';
-
-    let total = 0;
-
-    if(tiendaCarrito.length === 0) {
-        container.innerHTML = `<div class="text-center text-slate-400 italic text-[11px] py-16">El carrito está vacío. Selecciona productos a la izquierda.</div>`;
-        document.getElementById('carrito-total').innerText = "Bs 0.00";
-        return;
-    }
-
-    tiendaCarrito.forEach(item => {
-        const sub = item.precio * item.cantidad;
-        total += sub;
-
-        const div = document.createElement('div');
-        div.className = "bg-slate-50 border rounded-xl p-2.5 flex items-center justify-between text-xs font-semibold text-slate-700";
-        div.innerHTML = `
-            <div class="flex-1 min-w-0 pr-2">
-                <p class="font-extrabold truncate text-slate-800 uppercase text-[11px]">${item.nombre}</p>
-                <p class="text-blue-600 font-bold text-[10px] mt-0.5">${formatMoney(item.precio)} c/u</p>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-                <div class="flex items-center border bg-white rounded-lg overflow-hidden font-black">
-                    <button onclick="cambiarCantidadCarrito(${item.id}, -1)" class="px-2 py-0.5 hover:bg-slate-100 text-slate-400 text-[11px]">-</button>
-                    <span class="px-2 text-slate-800 text-[10px]">${item.cantidad}</span>
-                    <button onclick="cambiarCantidadCarrito(${item.id}, 1)" class="px-2 py-0.5 hover:bg-slate-100 text-slate-400 text-[11px]">+</button>
-                </div>
-                <span class="font-black text-slate-800 text-[11px] w-14 text-right">${formatMoney(sub)}</span>
-            </div>
-        `;
-        container.appendChild(div);
-    });
-
-    document.getElementById('carrito-total').innerText = formatMoney(total);
-}
-
-async function procesarVentaPOS() {
-    if(tiendaCarrito.length === 0) return;
-
-    const totalVenta = tiendaCarrito.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
-
-    if(confirm(`¿Confirmar cobro de venta rápida por ${formatMoney(totalVenta)}?`)) {
-        
-        // 1. Actualizar el stock de los productos uno a uno en Supabase
-        for (const item of tiendaCarrito) {
-            const p = tiendaProductos.find(prod => prod.id === item.id);
-            if (p) {
-                p.stock -= item.cantidad;
-                // Update directo en Supabase
-                const { error } = await supabase.from('tienda_productos').update({ stock: p.stock }).eq('id', p.id);
-                if (error) console.error(`Error actualizando stock de ${p.nombre}:`, error);
-            }
-        }
-
-        // 2. Insertar el ingreso monetario en Flujo de Caja en la nube
-        const conceptos = tiendaCarrito.map(i => `${i.cantidad}x ${i.nombre}`).join(', ');
-        await registrarEnFlujoCaja('Ingreso', 'Tienda', `Venta POS: ${conceptos}`, totalVenta);
-
-        // Limpiar estado local
-        vaciarCarrito();
-        renderProductosPOS();
-        renderProductosTienda();
-        alert("Venta procesada, stock rebajado e ingresos guardados en Supabase.");
-        playAlarmaSonido();
-    }
-}
-
-// ================= MODULO FLUJO DE CAJA / CONTABILIDAD =================
-
-function renderizarFlujoCaja() {
-    const tbody = document.getElementById('body-tabla-flujo');
-    if(!tbody) return;
-    tbody.innerHTML = '';
-
-    if(flujoCaja.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-slate-400 italic">No existen registros en el libro contable.</td></tr>`;
-        return;
-    }
-
-    // Clonamos y damos vuelta el array para ver lo más nuevo arriba
-    const invertido = [...flujoCaja].reverse();
-
-    invertido.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.className = "border-b border-slate-100 hover:bg-slate-50/40 font-semibold text-slate-700 text-xs";
-        
-        const badgeTipo = item.tipo === 'Ingreso' 
-            ? `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wider">🟢 Ingreso</span>`
-            : `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wider">🔴 Egreso</span>`;
-
-        const badgeCat = `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold text-[9px] uppercase">${item.categoria}</span>`;
-
-        tr.innerHTML = `
-            <td class="p-3 text-slate-400 font-normal">${new Date(item.timestamp || item.id).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-            <td class="p-3 text-slate-500 font-normal">${item.fecha}</td>
-            <td class="p-3 text-center">${badgeTipo}</td>
-            <td class="p-3">${badgeCat}</td>
-            <td class="p-3 text-slate-600 max-w-xs truncate"><b>${item.concepto}</b></td>
-            <td class="p-3 text-right font-black ${item.tipo==='Ingreso'?'text-emerald-600':'text-red-500'}">${formatMoney(item.monto)}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-async function registrarEnFlujoCaja(tipo, categoria, concepto, monto) {
+// ================= FLUJO DE CAJA CONTABLE =================
+function registrarEnFlujoCaja(tipo, categoria, concepto, monto) {
     const hoy = new Date();
-    const nuevoItem = {
+    const item = {
         id: Date.now(),
         timestamp: hoy.toISOString(),
         fecha: obtenerFechaISO(hoy),
-        tipo,        
-        categoria,   
+        tipo,        // 'Ingreso' / 'Egreso'
+        categoria,   // 'Canchas' / 'Billar' / 'Tienda' / 'Manual'
         concepto,
-        monto: parseFloat(monto)
+        monto: parseFloat(monto).toFixed(2)
     };
+    flujoCaja.push(item);
+    guardarFlujoCaja();
+}
 
-    // Subida directa a Supabase
-    const { error } = await supabase.from('flujo_caja').insert([nuevoItem]);
-    if (error) {
-        alert("Error crítico al sincronizar flujo de caja en Supabase: " + error.message);
+function renderizarFlujoCaja() {
+    const tbody = document.getElementById('tablaFlujo');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const filtroFecha = document.getElementById('flujo-filtro-fecha').value;
+
+    // Filtrar movimientos
+    const filtrados = flujoCaja.filter(f => !filtroFecha || f.fecha === filtroFecha);
+
+    let ingresos = 0;
+    let egresos = 0;
+
+    if (filtrados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-slate-400 italic">No hay movimientos financieros para este día.</td></tr>`;
+        document.getElementById('flujo-total-ingresos').innerText = "Bs 0.00";
+        document.getElementById('flujo-total-egresos').innerText = "Bs 0.00";
+        document.getElementById('flujo-total-neto').innerText = "Bs 0.00";
         return;
     }
 
-    flujoCaja.push(nuevoItem);
-    renderizarFlujoCaja();
-    actualizarDashboardEstadisticas();
+    filtrados.forEach(f => {
+        const montoVal = parseFloat(f.monto);
+        const esIngreso = f.tipo === 'Ingreso';
+        if (esIngreso) ingresos += montoVal;
+        else egresos += montoVal;
+
+        // Formatear hora
+        const hora = new Date(f.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="p-3 text-slate-500 font-mono">${f.fecha} | ${hora}</td>
+            <td class="p-3"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold text-[9px] uppercase tracking-wider">${f.categoria}</span></td>
+            <td class="p-3 text-slate-700">${f.concepto}</td>
+            <td class="p-3 text-right font-black ${esIngreso ? 'text-emerald-600':'text-red-500'}">${esIngreso ? '+':'-'} Bs ${montoVal.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    const neto = ingresos - egresos;
+    document.getElementById('flujo-total-ingresos').innerText = formatMoney(ingresos);
+    document.getElementById('flujo-total-egresos').innerText = formatMoney(egresos);
+    document.getElementById('flujo-total-neto').innerText = formatMoney(neto);
+    document.getElementById('flujo-total-neto').className = neto >= 0 ? "text-emerald-600 text-sm":"text-red-500 text-sm";
 }
 
-function agregarMovimientoManualFlujo(tipo) {
-    const concepto = document.getElementById('flujo-concepto').value.trim();
+function guardarMovimientoFlujoManual() {
+    const tipo = document.getElementById('flujo-tipo').value;
+    const concepto = document.getElementById('flujo-concepto').value.trim() || 'Movimiento Manual';
     const importe = parseFloat(document.getElementById('flujo-importe').value) || 0;
 
-    if(!concepto) { alert("Ingresa un concepto descriptivo."); return; }
-    if(importe <= 0) { alert("Ingresa un monto válido mayor a 0."); return; }
+    if (importe <= 0) {
+        alert("Por favor ingresa un monto válido mayor a 0.");
+        return;
+    }
 
     registrarEnFlujoCaja(tipo, 'Manual', concepto, importe);
     
-    // Limpiar campos
+    // Limpiar
     document.getElementById('flujo-concepto').value = '';
     document.getElementById('flujo-importe').value = '';
 
-    alert("Operación manual registrada correctamente en Supabase.");
+    renderizarFlujoCaja();
+    actualizarDashboardEstadisticas();
+    alert("Operación manual registrada correctamente.");
 }
 
-async function limpiarHistorialFlujo() {
-    if (confirm("ATENCIÓN: Se borrarán todos los registros contables en la nube de forma permanente. ¿Estás seguro?")) {
-        // Borrar todo de la tabla
-        const { error } = await supabase.from('flujo_caja').delete().gt('id', 0);
-        if (error) { alert("No se pudo limpiar la tabla en la nube: " + error.message); return; }
-
-        flujoCaja = [];
+function limpiarHistorialFlujo() {
+    if (confirm("ATENCIÓN: Se borrarán todos los registros contables del Flujo de Caja. ¿Estás seguro?")) {
+        // CAMBIADO: Ahora se inicializa vacío, sin el registro de 100.00 Bs.
+        flujoCaja = []; 
+        
+        guardarFlujoCaja();
         renderizarFlujoCaja();
-        actualizarDashboardEstadisticas();
-        alert("Libro contable reiniciado con éxito.");
     }
 }
 
 function exportarExcelFlujo() {
-    const dataStr = "data:text/json;charset=utf-8格式," + encodeURIComponent(JSON.stringify(flujoCaja, null, 2));
+    // Descarga simple en formato JSON formateado
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(flujoCaja, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href",     dataStr);
     downloadAnchor.setAttribute("download", `flujo_caja_wally_romo_${obtenerFechaISO(new Date())}.json`);
