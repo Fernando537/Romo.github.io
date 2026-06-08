@@ -1,3 +1,14 @@
+// ================= CONFIGURACIÓN DE SUPABASE =================
+const SUPABASE_URL = "https://TU_PROYECTO.supabase.co"; // Reemplaza con tu URL de Supabase
+const SUPABASE_ANON_KEY = "TU_ANON_KEY_DE_SUPABASE";   // Reemplaza con tu llave Anon API Key
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Mantendremos las variables globales vacías para sincronizarlas con la nube
+let canchasReservas = [];
+let tiendaCategorias = [];
+let tiendaProductos = [];
+let flujoCaja = [];
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playAlarmaSonido() {
     try {
