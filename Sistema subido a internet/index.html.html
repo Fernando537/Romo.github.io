@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complejo Deportivo Wally Romo - Control Central</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        wallyDarkBlue: '#0083A0',
+                        wallyBlue: '#1A66FF',
+                        wallyGreen: '#009B67',
+                        wallyNavy: '#0F172A',
+                        wallyLightBg: '#F8FAFC',
+                        wallyCardBg: '#FFFFFF'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-[#f1f4f8] text-slate-800 font-sans min-h-screen antialiased flex flex-col md:flex-row">
+<link rel="stylesheet" href="css/estilos.css">
+
+<script src="js/app.js" defer></script>
+
+    <!-- ÁREA DE CONTENIDO PRINCIPAL -->
+    <section class="flex-1 flex flex-col min-w-0 bg-[#f8fafc] max-h-screen overflow-y-auto">
+        
+        <!-- Encabezado Superior -->
+        <div class="bg-[#00839b] text-white p-4 flex justify-between items-center shadow-md shrink-0 no-select">
+            <div class="flex items-center gap-2">
+                <span id="header-icono" class="text-xl">🏠</span>
+                <span id="titulo-modulo-activo" class="font-extrabold text-sm md:text-base tracking-wider uppercase">Inicio / Resumen Diario</span>
+            </div>
+            <div class="text-[10px] md:text-xs font-bold bg-white/20 px-3 py-1.5 rounded-xl border border-white/10 uppercase tracking-widest">
+                Wally Romo v4.0
+            </div>
+        </div>
+
+        <!-- ================= MODULO INICIO ================= -->
+<div id="modulo-inicio" class="p-4 md:p-6 space-y-6 structural-modulo">
+
+            <!-- Se eliminaron el h2 y el p que contenían el texto del complejo -->
+        </div>
+        <!-- Decorativo de fondo -->
+        <div class="absolute right-0 bottom-0 text-[120px] translate-x-12 translate-y-12 opacity-10 select-none">🏐</div>
+    </div>
+            <!-- Resumen de Estadísticas Rápidas -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Tarjeta 1: Caja del Día -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition">
+                    <div class="space-y-1">
+                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Caja Neta de Hoy</span>
+                        <h3 id="stat-caja" class="text-xl font-black text-emerald-600">Bs 0.00</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold">💵</div>
+                </div>
+
+                <!-- Tarjeta 2: Canchas Reservadas Hoy -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition">
+                    <div class="space-y-1">
+                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Canchas Reservadas</span>
+                        <h3 id="stat-canchas" class="text-xl font-black text-cyan-600">0 Turnos</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl font-bold">🏐</div>
+                </div>
+
+                <!-- Tarjeta 3: Mesas de Billar en Uso -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition">
+                    <div class="space-y-1">
+                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Mesas en Uso</span>
+                        <h3 id="stat-billar" class="text-xl font-black text-amber-500">0 Activas</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl font-bold">🎱</div>
+                </div>
+
+                <!-- Tarjeta 4: Saldos Pendientes -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition">
+                    <div class="space-y-1">
+                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Saldos por Cobrar</span>
+                        <h3 id="stat-saldos" class="text-xl font-black text-red-500">Bs 0.00</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center text-xl font-bold">💸</div>
+                </div>
+            </div>
+
+            <!-- Accesos Rápidos a Módulos -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-extrabold text-sm text-slate-700 uppercase tracking-wider border-b pb-2">Secciones del Sistema</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div onclick="cambiarModulo('canchas')" class="bg-slate-50 border border-slate-100 hover:border-cyan-400 rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer shadow-xs hover:shadow-md transition group">
+                        <div class="w-14 h-14 bg-cyan-600 text-white rounded-xl flex items-center justify-center text-2xl mb-4 font-bold group-hover:scale-105 transition-all">🏐</div>
+                        <h4 class="text-cyan-800 font-black text-xs tracking-wider uppercase">Canchas Deportivas</h4>
+                        <p class="text-[11px] text-slate-400 font-medium mt-1 leading-relaxed">Turnos de Wally, Raquetbol y Futbito.</p>
+                    </div>
+
+                    <div onclick="cambiarModulo('billar')" class="bg-slate-50 border border-slate-100 hover:border-amber-400 rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer shadow-xs hover:shadow-md transition group">
+                        <div class="w-14 h-14 bg-amber-500 text-slate-900 rounded-xl flex items-center justify-center text-2xl mb-4 font-bold group-hover:scale-105 transition-all">🎱</div>
+                        <h4 class="text-amber-800 font-black text-xs tracking-wider uppercase">Mesas de Billar</h4>
+                        <p class="text-[11px] text-slate-400 font-medium mt-1 leading-relaxed">Control de alquileres en tiempo real.</p>
+                    </div>
+
+                    <div onclick="cambiarModulo('tienda')" class="bg-slate-50 border border-slate-100 hover:border-blue-400 rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer shadow-xs hover:shadow-md transition group">
+                        <div class="w-14 h-14 bg-blue-600 text-white rounded-xl flex items-center justify-center text-2xl mb-4 font-bold group-hover:scale-105 transition-all">🏪</div>
+                        <h4 class="text-blue-900 font-black text-xs tracking-wider uppercase">Tienda & POS</h4>
+                        <p class="text-[11px] text-slate-400 font-medium mt-1 leading-relaxed">Venta y control de inventario de snacks.</p>
+                    </div>
+
+                    <div onclick="cambiarModulo('flujo')" class="bg-slate-50 border border-slate-100 hover:border-slate-400 rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer shadow-xs hover:shadow-md transition group">
+                        <div class="w-14 h-14 bg-slate-800 text-white rounded-xl flex items-center justify-center text-2xl mb-4 font-bold group-hover:scale-105 transition-all">📊</div>
+                        <h4 class="text-slate-800 font-black text-xs tracking-wider uppercase">Flujo Financiero</h4>
+                        <p class="text-[11px] text-slate-400 font-medium mt-1 leading-relaxed">Libro de caja contable e histórico.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MODULO CANCHAS ================= -->
+        <div id="modulo-canchas" class="hidden p-4 md:p-6 space-y-4 structural-modulo">
+            
+            <div class="w-full bg-white shadow-md rounded-2xl flex flex-col lg:flex-row overflow-hidden border border-slate-200">
+                <!-- Columna Izquierda: Rejilla Principal -->
+                <div class="flex-1 flex flex-col min-w-0 bg-white">
+                    <!-- Barra de herramientas superior -->
+                    <div class="bg-cyan-700 text-white p-4 flex justify-between items-center shadow-sm shrink-0">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">🕒</span>
+                            <span class="font-extrabold text-xs md:text-sm tracking-wider uppercase">Planilla Horaria de Turnos</span>
+                        </div>
+                        <button onclick="abrirModalReservaCanchasManual()" class="bg-white text-cyan-800 hover:bg-cyan-50 text-xs font-black py-2 px-4 rounded-xl shadow border border-cyan-100 transition cursor-pointer uppercase">
+                            + Reservar Turno
+                        </button>
+                    </div>
+
+                    <!-- Navegador de fechas -->
+                    <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3 shrink-0">
+                        <div>
+                            <h3 id="fecha-display" class="text-sm md:text-base font-black text-slate-700 uppercase">Cargando fecha...</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="establecerHoyCanchas()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-3 py-2 rounded-xl font-bold transition cursor-pointer">Hoy</button>
+                            <div class="flex bg-slate-700 rounded-xl overflow-hidden shadow">
+                                <button onclick="modificarFechaCanchas(-1)" class="text-white px-4 py-2 hover:bg-slate-600 font-bold border-r border-slate-600 cursor-pointer transition-colors">&lt;</button>
+                                <button onclick="modificarFechaCanchas(1)" class="text-white px-4 py-2 hover:bg-slate-600 font-bold cursor-pointer transition-colors">&gt;</button>
+                            </div>
+                            <input type="date" id="canchas-date-picker" onchange="seleccionarFechaCanchas(this.value)" class="border border-slate-300 rounded-xl p-1.5 text-xs text-slate-700 font-semibold focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- REJILLA VISUAL -->
+                    <div class="flex flex-col overflow-hidden relative min-h-[500px]">
+                        <!-- Encabezados de Canchas -->
+                        <div class="grid grid-cols-[70px_1fr_1fr_1fr] bg-slate-100 text-center border-b border-slate-300 z-10 shadow-sm shrink-0 font-extrabold text-[10px] md:text-xs text-slate-600 tracking-wider">
+                            <div class="p-3 border-r border-slate-200 bg-slate-200/50">Hora</div>
+                            <div class="p-3 border-r border-slate-200">CANCHA 2</div>
+                            <div class="p-3 border-r border-slate-200">CANCHA 3</div>
+                            <div class="p-3">CANCHA 4</div>
+                        </div>
+
+                        <!-- Espacio de horas con scroll -->
+                        <div id="contenedor-horas-canchas" class="flex-1 overflow-y-auto bg-slate-50/40 relative select-none" style="height: 600px;">
+                            <!-- Inyectado dinámicamente por JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= MODULO BILLAR ================= -->
+        <div id="modulo-billar" class="hidden p-4 md:p-6 space-y-6 structural-modulo">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 flex justify-between items-center flex-wrap gap-3 shadow-sm">
+                <div>
+                    <h3 class="font-extrabold text-sm text-slate-700 uppercase tracking-wider">Monitoreo de Mesas Activas</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Control de juego cronometrado o con límites de tiempo pactados.</p>
+                </div>
+                <button class="bg-[#00839b] hover:opacity-90 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition" onclick="toggleHistoryBillar()">
+                    👁 Ver Historial de Cierres
+                </button>
+            </div>
+
+            <!-- Panel Historial Billar Ocultable -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hidden space-y-4" id="historySectionBillar">
+                <div class="flex justify-between items-center border-b pb-2.5">
+                    <h4 class="font-extrabold text-xs text-slate-600 uppercase tracking-wider">Historial de Alquiler de Billar</h4>
+                    <button class="text-red-500 font-extrabold text-xs hover:underline uppercase" onclick="limpiarHistorialBillar()">🗑 Borrar Todo</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left divide-y divide-slate-200 text-xs">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="p-3 font-bold text-slate-500 uppercase">Mesa</th>
+                                <th class="p-3 font-bold text-slate-500 uppercase">Modo</th>
+                                <th class="p-3 font-bold text-slate-500 uppercase">Fecha / Horas</th>
+                                <th class="p-3 font-bold text-slate-500 uppercase">Duración Real</th>
+                                <th class="p-3 font-bold text-slate-500 uppercase">Estado Pago</th>
+                                <th class="p-3 font-bold text-slate-500 uppercase text-right">Total Cobrado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsTableBodyBillar" class="divide-y divide-slate-100 font-medium">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Grid Mesas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Mesa 1 -->
+                <div class="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col shadow-sm relative overflow-hidden" id="mesaCard-1">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="font-extrabold text-base text-slate-800 uppercase tracking-wide">Mesa Profesional 1</h4>
+                        <div class="status-badge bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-slate-200" id="badge-1">Disponible</div>
+                    </div>
+                    
+                    <!-- Icono Ilustrativo de Mesa -->
+                    <div class="bg-slate-50 p-4 rounded-2xl flex justify-center mb-4 border border-slate-100">
+                        <svg class="w-36 h-20" viewBox="0 0 100 60">
+                            <rect x="5" y="5" width="90" height="50" rx="5" fill="#5c3a21"/>
+                            <rect x="10" y="10" width="80" height="40" rx="2" fill="#0b7e45"/>
+                            <line x1="12" y1="22" x2="68" y2="16" stroke="#d1a153" stroke-width="2"/>
+                            <circle cx="32" cy="32" r="2.5" fill="#fff"/>
+                            <circle cx="75" cy="30" r="2.5" fill="#cc0000"/>
+                            <circle cx="71" cy="25" r="2.5" fill="#f4b400"/>
+                        </svg>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Estado de Pago:</label>
+                            <select class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none" id="paymentStatus-1">
+                                <option value="Por pagar">❌ Por pagar</option>
+                                <option value="Pagado">✅ Pagado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Configuración Inicial:</label>
+                            <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                                <button class="flex-1 bg-cyan-600 text-white font-bold py-1.5 rounded-lg text-[10px] uppercase tracking-wider shadow" id="btnModeCron-1" onclick="setModeBillar(1, 'cronometro')">⏱ Crono</button>
+                                <button class="flex-1 text-slate-500 hover:text-slate-700 font-bold py-1.5 rounded-lg text-[10px] uppercase tracking-wider" id="btnModeTemp-1" onclick="setModeBillar(1, 'temporizador')">⏳ Temp</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Temporizador Input -->
+                    <div id="wrapperMinutos-1" class="hidden mb-4">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Minutos Pactados:</label>
+                        <input type="number" id="inputMinutos-1" value="60" min="1" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs text-center font-bold focus:outline-none">
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-2xl grid grid-cols-2 gap-3 text-xs mb-5 border border-slate-100">
+                        <div><span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Inicio</span><span class="font-mono font-bold text-slate-700 text-sm" id="valInicio-1">--:--:--</span></div>
+                        <div><span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wider" id="lblFin-1">Hora Actual</span><span class="font-mono font-bold text-slate-700 text-sm" id="valFin-1">--:--:--</span></div>
+                        <div class="col-span-2 border-t border-slate-200/60 pt-2.5 mt-1 flex justify-between items-center"><span class="text-slate-400 font-bold uppercase text-[9px] tracking-wider" id="lblTiempo-1">Tiempo de Juego:</span><span class="font-black text-amber-600 text-sm font-mono" id="valTiempo-1">00:00:00</span></div>
+                        <div class="col-span-2 flex justify-between items-center"><span class="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Cobro Acumulado:</span><span class="font-black text-emerald-600 text-sm" id="valImporte-1">Bs 0.00</span></div>
+                    </div>
+
+                    <button class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition shadow-md" id="btnMain-1" onclick="toggleMesaBillar(1)">⚡ Iniciar Juego</button>
+                </div>
+
+                <!-- Mesa 2 -->
+                <div class="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col shadow-sm relative overflow-hidden" id="mesaCard-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="font-extrabold text-base text-slate-800 uppercase tracking-wide">Mesa Profesional 2</h4>
+                        <div class="status-badge bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-slate-200" id="badge-2">Disponible</div>
+                    </div>
+                    
+                    <!-- Icono Ilustrativo de Mesa -->
+                    <div class="bg-slate-50 p-4 rounded-2xl flex justify-center mb-4 border border-slate-100">
+                        <svg class="w-36 h-20" viewBox="0 0 100 60">
+                            <rect x="5" y="5" width="90" height="50" rx="5" fill="#5c3a21"/>
+                            <rect x="10" y="10" width="80" height="40" rx="2" fill="#0b7e45"/>
+                            <line x1="15" y1="25" x2="70" y2="20" stroke="#d1a153" stroke-width="2"/>
+                            <circle cx="35" cy="28" r="2.5" fill="#fff"/>
+                            <circle cx="72" cy="35" r="2.5" fill="#cc0000"/>
+                            <circle cx="76" cy="28" r="2.5" fill="#4285f4"/>
+                        </svg>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Estado de Pago:</label>
+                            <select class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none" id="paymentStatus-2">
+                                <option value="Por pagar">❌ Por pagar</option>
+                                <option value="Pagado">✅ Pagado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Configuración Inicial:</label>
+                            <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                                <button class="flex-1 bg-cyan-600 text-white font-bold py-1.5 rounded-lg text-[10px] uppercase tracking-wider shadow" id="btnModeCron-2" onclick="setModeBillar(2, 'cronometro')">⏱ Crono</button>
+                                <button class="flex-1 text-slate-500 hover:text-slate-700 font-bold py-1.5 rounded-lg text-[10px] uppercase tracking-wider" id="btnModeTemp-2" onclick="setModeBillar(2, 'temporizador')">⏳ Temp</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Temporizador Input -->
+                    <div id="wrapperMinutos-2" class="hidden mb-4">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Minutos Pactados:</label>
+                        <input type="number" id="inputMinutos-2" value="60" min="1" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs text-center font-bold focus:outline-none">
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-2xl grid grid-cols-2 gap-3 text-xs mb-5 border border-slate-100">
+                        <div><span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Inicio</span><span class="font-mono font-bold text-slate-700 text-sm" id="valInicio-2">--:--:--</span></div>
+                        <div><span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wider" id="lblFin-2">Hora Actual</span><span class="font-mono font-bold text-slate-700 text-sm" id="valFin-2">--:--:--</span></div>
+                        <div class="col-span-2 border-t border-slate-200/60 pt-2.5 mt-1 flex justify-between items-center"><span class="text-slate-400 font-bold uppercase text-[9px] tracking-wider" id="lblTiempo-2">Tiempo de Juego:</span><span class="font-black text-amber-600 text-sm font-mono" id="valTiempo-2">00:00:00</span></div>
+                        <div class="col-span-2 flex justify-between items-center"><span class="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Cobro Acumulado:</span><span class="font-black text-emerald-600 text-sm" id="valImporte-2">Bs 0.00</span></div>
+                    </div>
+
+                    <button class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition shadow-md" id="btnMain-2" onclick="toggleMesaBillar(2)">⚡ Iniciar Juego</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MODULO TIENDA & POS ================= -->
+        <div id="modulo-tienda" class="hidden p-4 md:p-6 space-y-6 structural-modulo">
+            <div class="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-sm gap-2">
+                <button onclick="cambiarSubModuloTienda('pos')" id="tab-tienda-pos" class="flex-1 bg-slate-800 text-white font-extrabold py-2 px-4 rounded-xl text-xs uppercase tracking-wider shadow">
+                    🛒 Caja / Venta Rápida (POS)
+                </button>
+                <button onclick="cambiarSubModuloTienda('inventario')" id="tab-tienda-inventario" class="flex-1 text-slate-500 hover:text-slate-800 font-extrabold py-2 px-4 rounded-xl text-xs uppercase tracking-wider transition">
+                    📦 Almacén / Inventario
+                </button>
+            </div>
+
+            <div id="sub-tienda-pos" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center gap-3">
+                        <div class="flex-1 relative">
+                            <input type="text" id="buscador-pos" oninput="filtrarProductosPOS()" placeholder="Buscar producto por nombre..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-400">
+                            <span class="absolute left-3.5 top-2.5 text-xs text-slate-400">🔍</span>
+                        </div>
+                        <div id="categorias-filtro-pos" class="flex gap-1 overflow-x-auto py-1">
+                            </div>
+                    </div>
+
+                    <div id="grid-productos-pos" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        </div>
+                </div>
+
+                <div class="bg-white rounded-3xl border border-slate-200 shadow-md p-5 flex flex-col h-[550px]">
+                    <h3 class="font-extrabold text-xs text-slate-700 uppercase tracking-wider border-b pb-3 mb-3 flex justify-between">
+                        <span>🛒 Carrito de Compras</span>
+                        <button onclick="vaciarCarrito()" class="text-red-500 font-bold hover:underline text-[10px] tracking-wide uppercase">Vaciar</button>
+                    </h3>
+                    
+                    <div id="carrito-items" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                        </div>
+
+                    <div class="border-t border-slate-100 pt-4 mt-3 space-y-3">
+                        <div class="flex justify-between items-center text-sm font-bold text-slate-700">
+                            <span>TOTAL VENTA:</span>
+                            <span id="carrito-total" class="text-lg font-black text-blue-600">Bs 0.00</span>
+                        </div>
+                        <button onclick="procesarVentaPOS()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-2xl text-xs uppercase tracking-widest shadow transition">
+                            💸 Confirmar Venta
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sub-tienda-inventario" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                        <h4 class="font-extrabold text-xs text-slate-700 uppercase tracking-wider border-b pb-2">📦 Añadir Producto</h4>
+                        <form id="productForm" onsubmit="guardarProductoTienda(event)" class="space-y-3 text-xs">
+                            <div>
+                                <label class="block font-bold text-slate-500 mb-1">Nombre del Producto *</label>
+                                <input type="text" id="prodNombre" required class="w-full p-2.5 border border-slate-200 rounded-xl">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block font-bold text-slate-500 mb-1">Categoría *</label>
+                                    <select id="prodCategoria" required class="w-full p-2.5 bg-white border border-slate-200 rounded-xl">
+                                        </select>
+                                </div>
+                                <div class="flex items-end">
+                                    <button type="button" onclick="agregarCategoriaTienda()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-[10px] uppercase tracking-wider">
+                                        + Nueva Cat
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block font-bold text-slate-500 mb-1">Precio Unitario *</label>
+                                    <input type="number" id="prodPrecio" step="0.10" required class="w-full p-2.5 border border-slate-200 rounded-xl text-right pr-4">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-500 mb-1">Stock Inicial *</label>
+                                    <input type="number" id="prodStock" required class="w-full p-2.5 border border-slate-200 rounded-xl text-right pr-4">
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl font-black uppercase tracking-wider transition mt-2">
+                                Guardar en Almacén
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                        <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
+                            <h3 class="font-extrabold text-xs text-slate-600 uppercase tracking-wider">Listado General de Stock</h3>
+                            <span id="contadorProductos" class="bg-blue-600 text-white px-2.5 py-0.5 rounded-full font-bold text-[10px]">0 Productos</span>
+                        </div>
+                        <div class="overflow-x-auto flex-1 max-h-[420px]">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-100 text-[10px] uppercase font-bold text-slate-500 border-b">
+                                    <tr>
+                                        <th class="p-3">Producto</th>
+                                        <th class="p-3">Categoría</th>
+                                        <th class="p-3 text-center">Precio</th>
+                                        <th class="p-3 text-center">Stock</th>
+                                        <th class="p-3 text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaProductos" class="divide-y divide-slate-100 font-semibold text-slate-700">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MODULO FLUJO DE CAJA ================= -->
+        <div id="modulo-flujo" class="hidden p-4 md:p-6 space-y-6 structural-modulo">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h3 class="font-extrabold text-sm text-slate-700 uppercase tracking-wider">Libro General de Caja</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Control histórico consolidado de todas las transacciones financieras.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportarExcelFlujo()" class="bg-slate-800 text-white font-bold text-xs px-3.5 py-2 rounded-xl uppercase hover:bg-slate-700 transition">📥 Respaldar / Descargar</button>
+                    <button onclick="limpiarHistorialFlujo()" class="text-red-500 border border-red-200 bg-red-50 font-bold text-xs px-3.5 py-2 rounded-xl uppercase hover:bg-red-100 transition">🗑 Reiniciar Caja</button>
+                </div>
+            </div>
+
+            <!-- Registro Manual -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Registro de Movimientos Manuales -->
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <h4 class="font-extrabold text-xs text-slate-700 uppercase tracking-wider border-b pb-2">✍️ Registrar Movimiento</h4>
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-bold text-slate-500 mb-1">Tipo de Movimiento *</label>
+                            <select id="flujo-tipo" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold">
+                                <option value="Ingreso">📥 Ingreso Manual</option>
+                                <option value="Egreso">📤 Egreso / Gasto</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-500 mb-1">Descripción / Concepto *</label>
+                            <input type="text" id="flujo-concepto" placeholder="Ej. Pago de luz, Compra de refrescos..." class="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-500 mb-1">Importe en Bs. *</label>
+                            <input type="number" id="flujo-importe" step="0.10" class="w-full p-2.5 border border-slate-200 rounded-xl focus:outline-none text-right pr-4 font-bold text-blue-600">
+                        </div>
+                        <button onclick="guardarMovimientoFlujoManual()" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl font-black uppercase tracking-wider transition">
+                            Registrar Operación
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Historial de Transacciones -->
+                <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
+                        <h3 class="font-extrabold text-xs text-slate-600 uppercase tracking-wider">Historial de Movimientos de Caja</h3>
+                        <div class="flex items-center gap-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Filtrar por fecha:</label>
+                            <input type="date" id="flujo-filtro-fecha" onchange="renderizarFlujoCaja()" class="border border-slate-300 rounded-xl p-1 text-[11px] text-slate-700 font-semibold focus:outline-none">
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto flex-1 max-h-[420px]">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead class="bg-slate-100 text-[10px] uppercase font-bold text-slate-500 border-b">
+                                <tr>
+                                    <th class="p-3">Fecha & Hora</th>
+                                    <th class="p-3">Categoría / Tipo</th>
+                                    <th class="p-3">Concepto / Descripción</th>
+                                    <th class="p-3 text-right">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaFlujo" class="divide-y divide-slate-100 font-semibold text-slate-700">
+                                <!-- Inyectado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Resumen del día filtrado -->
+                    <div class="bg-slate-100 p-4 border-t border-slate-200 grid grid-cols-3 gap-3 text-center text-xs font-black">
+                        <div>
+                            <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Ingresos Totales</span>
+                            <span id="flujo-total-ingresos" class="text-emerald-600 text-sm">Bs 0.00</span>
+                        </div>
+                        <div>
+                            <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Egresos Totales</span>
+                            <span id="flujo-total-egresos" class="text-red-500 text-sm">Bs 0.00</span>
+                        </div>
+                        <div>
+                            <span class="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Utilidad Neta</span>
+                            <span id="flujo-total-neto" class="text-slate-800 text-sm">Bs 0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pie de Página Fijo -->
+        <footer class="bg-white p-3.5 border-t border-slate-200 shrink-0 px-5 flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase mt-auto no-select">
+            <p>Complejo Deportivo: <span class="text-slate-700">Wally Romo</span></p>
+            <p>Mauricio © 2026</p>
+        </footer>
+    </section>
+
+    <!-- ================= COMPONENTES INTERACTIVOS (MODALES) ================= -->
+    
+    <!-- MODAL FORMULARIO RESERVA CANCHAS -->
+    <div id="modal-reserva-canchas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl flex flex-col max-h-[90vh] text-xs">
+            <div class="bg-cyan-700 text-white p-4 flex justify-between items-center">
+                <h3 id="titulo-modal-canchas" class="font-extrabold tracking-wider text-sm uppercase">📋 Configurar Turno</h3>
+                <button onclick="cerrarModalCanchas()" class="text-white text-xl font-bold p-1 hover:text-cyan-100">&times;</button>
+            </div>
+            <div class="p-5 space-y-4 overflow-y-auto">
+                <input type="hidden" id="form-canchas-id">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Nombre del Cliente *</label>
+                        <input id="form-canchas-cliente" type="text" required placeholder="Ej. Mario Silva" class="w-full border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Celular / Teléfono</label>
+                        <input id="form-canchas-telefono" type="number" placeholder="Ej. 70012345" class="w-full border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Fecha de Ejecución</label>
+                    <input id="form-canchas-fecha" type="date" required class="w-full border border-slate-200 rounded-xl p-2.5 focus:outline-none">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Cancha Deportiva</label>
+                        <select id="form-canchas-cancha" class="w-full p-2 bg-white border border-slate-200 rounded-xl font-bold text-cyan-700 focus:outline-none">
+                            <option value="2">Cancha 2 (Wally/Vóley)</option>
+                            <option value="3">Cancha 3 (Futbito/Pelota)</option>
+                            <option value="4">Cancha 4 (Raquetbol)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">Disciplina / Juego</label>
+                        <select id="form-canchas-juego" class="w-full p-2 bg-white border border-slate-200 rounded-xl font-semibold focus:outline-none">
+                            <option value="Wally">Wally</option>
+                            <option value="Futbito">Futbito</option>
+                            <option value="Raquetbol">Raquetbol</option>
+                            <option value="Pelota Gigante">Pelota Gigante</option>
+                            <option value="Recreativo">Recreativo</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Hora Inicio</label>
+                        <input id="form-canchas-inicio" type="time" required class="w-full border border-slate-200 rounded-xl p-2.5 text-center font-bold focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-400 uppercase tracking-wider mb-1">Hora Fin</label>
+                        <input id="form-canchas-fin" type="time" required class="w-full border border-slate-200 rounded-xl p-2.5 text-center font-bold focus:outline-none">
+                    </div>
+                </div>
+                
+                <!-- Precios y Cobros -->
+                <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                    <div class="grid grid-cols-[120px_1fr] border-b border-slate-100 items-center">
+                        <div class="bg-slate-50 p-3 font-bold text-slate-500 pl-4 uppercase text-[10px]">Costo Total</div>
+                        <input id="form-canchas-total" type="number" step="0.10" value="60.00" oninput="calcularSaldoCanchasForm()" class="p-3 text-right font-black text-blue-600 focus:outline-none">
+                    </div>
+                    <div class="grid grid-cols-[120px_1fr] border-b border-slate-100 items-center">
+                        <div class="bg-slate-50 p-3 font-bold text-slate-500 pl-4 uppercase text-[10px]">A Cuenta (Adelanto)</div>
+                        <input id="form-canchas-acuenta" type="number" step="0.10" value="0.00" oninput="calcularSaldoCanchasForm()" class="p-3 text-right font-black text-emerald-600 focus:outline-none">
+                    </div>
+                    <div class="grid grid-cols-[120px_1fr] items-center bg-red-50">
+                        <div class="bg-red-500 text-white p-3 font-bold pl-4 uppercase text-[10px]">Saldo Pendiente</div>
+                        <div id="form-canchas-saldo" class="p-3 font-black text-red-600 text-right pr-6">60.00 Bs.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-100 p-4 border-t border-slate-200 grid grid-cols-2 gap-3 rounded-b-3xl">
+                <button onclick="cerrarModalCanchas()" class="bg-slate-300 hover:bg-slate-400 text-slate-700 font-bold py-3 rounded-2xl transition">Cancelar</button>
+                <button onclick="guardarReservaCanchas()" class="bg-cyan-700 hover:bg-cyan-850 text-white font-black py-3 rounded-2xl shadow transition">Confirmar Reserva</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL COMPROBANTE / DETALLE CANCHAS -->
+    <div id="modal-comprobante-canchas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-xs rounded-3xl shadow-2xl p-6 space-y-4 text-xs border border-slate-100 relative">
+            <div class="text-center border-b border-dashed border-slate-200 pb-3">
+                <h4 class="font-black text-base text-slate-800 tracking-wider">RESUMEN DE TURNO</h4>
+                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Comprobante de Caja</p>
+            </div>
+            <div class="space-y-2.5 text-slate-700">
+                <div class="flex justify-between"><span class="text-slate-400 font-semibold">Cliente:</span> <span id="comp-cliente" class="font-extrabold uppercase text-slate-800"></span></div>
+                <div class="flex justify-between"><span class="text-slate-400 font-semibold">Cancha / Ubicación:</span> <span id="comp-cancha" class="font-bold text-slate-800"></span></div>
+                <div class="flex justify-between"><span class="text-slate-400 font-semibold">Disciplina:</span> <span id="comp-juego" class="font-bold text-slate-800"></span></div>
+                <div class="flex justify-between"><span class="text-slate-400 font-semibold">Fecha:</span> <span id="comp-fecha" class="font-mono text-slate-800"></span></div>
+                <div class="flex justify-between"><span class="text-slate-400 font-semibold">Horario:</span> <span class="font-bold text-slate-800"><span id="comp-inicio"></span> a <span id="comp-fin"></span></span></div>
+                
+                <div class="border-t border-slate-100 pt-2.5 flex justify-between items-center">
+                    <span class="text-slate-500 font-bold">Total Arriendo:</span> <span id="comp-total" class="text-blue-600 font-extrabold"></span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 font-bold">Abonado (Seña):</span> <span id="comp-acuenta" class="text-emerald-600 font-extrabold"></span>
+                </div>
+                <div class="flex justify-between items-center border-t border-dashed border-slate-300 pt-2.5 bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-800 font-black">SALDO PENDIENTE:</span> <span id="comp-saldo" class="text-red-500 font-black text-sm"></span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-2">
+                <button id="btn-comp-editar" class="bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 rounded-2xl shadow transition">✏️ EDITAR</button>
+                <button onclick="liberarCanchaCompleta()" class="bg-red-500 hover:bg-red-600 text-white font-extrabold py-3 rounded-2xl shadow transition">🗑️ LIBERAR</button>
+                <button onclick="cerrarComprobanteCanchas()" class="col-span-2 bg-slate-850 hover:bg-slate-900 text-white font-extrabold py-2.5 rounded-2xl transition">SALIR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="../javascript/app.js"></script>
+</body>
+</html>
