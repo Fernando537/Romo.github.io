@@ -982,7 +982,21 @@ function exportarExcelFlujo() {
     downloadAnchor.click();
     downloadAnchor.remove();
 }
-
+// Escuchar cambios en tiempo real en la tabla de reservas_canchas
+const canalReservas = insforge
+  .channel('cambios-canchas') // Nombre de canal que tú quieras
+  .on(
+    'postgres_changes', 
+    { event: '*', schema: 'public', table: 'reservas_canchas' }, 
+    (payload) => {
+      console.log('¡Hubo un cambio en las canchas en tiempo real!', payload);
+      
+      // Aquí pones la función de tu proyecto que limpia la grilla visual 
+      // y vuelve a pintar las horas en el HTML. Ejemplo:
+      actualizarGrillaVisualCanchas(); 
+    }
+  )
+  .subscribe()
 // ================= WINDOW LOAD INITIALIZER =================
 window.onload = function() {
     inicializarBaseDatos();
